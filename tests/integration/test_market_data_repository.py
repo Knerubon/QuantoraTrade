@@ -46,25 +46,40 @@ def clean_market_data_tables() -> None:
         session.execute(delete(BrokerModel))
 
 
-def instrument(*, tick_value: Decimal = Decimal("1")) -> Instrument:
+def instrument(
+    *,
+    symbol: str = "EURUSD",
+    asset_class: AssetClass = AssetClass.FOREX,
+    tick_value: Decimal = Decimal("1"),
+) -> Instrument:
+    is_forex = asset_class is AssetClass.FOREX
     return Instrument(
-        symbol="EURUSD",
-        asset_class=AssetClass.FOREX,
+        symbol=symbol,
+        asset_class=asset_class,
         quote_currency="USD",
-        digits=5,
-        point=Decimal("0.00001"),
-        tick_size=Decimal("0.00001"),
+        digits=5 if is_forex else 2,
+        point=Decimal("0.00001") if is_forex else Decimal("0.01"),
+        pip_size=Decimal("0.0001") if is_forex else Decimal("0.01"),
+        tick_size=Decimal("0.00001") if is_forex else Decimal("0.01"),
         tick_value=tick_value,
-        contract_size=Decimal("100000"),
+        contract_size=Decimal("100000") if is_forex else Decimal("100"),
+        spread_points=12 if is_forex else 25,
+        session_timezone="UTC",
+        session_profile="forex_24x5" if is_forex else "metals_24x5",
         volume_min=Decimal("0.01"),
         volume_max=Decimal("100"),
         volume_step=Decimal("0.01"),
     )
 
 
-def market_candle(open_time: datetime, close: Decimal = Decimal("1.1005")) -> Candle:
+def market_candle(
+    open_time: datetime,
+    close: Decimal = Decimal("1.1005"),
+    *,
+    symbol: str = "EURUSD",
+) -> Candle:
     return Candle(
-        symbol="EURUSD",
+        symbol=symbol,
         timeframe="M15",
         open_time=open_time,
         close_time=open_time + timedelta(minutes=15),
@@ -109,9 +124,10 @@ def batch(
     close: Decimal = Decimal("1.1005"),
 ) -> MarketDataBatch:
     source_rate = raw_rate(NOW - timedelta(minutes=15))
-    normalized = market_candle(source_rate.open_time, close)
+    selected_instrument = specification or instrument()
+    normalized = market_candle(source_rate.open_time, close, symbol=selected_instrument.symbol)
     return MarketDataBatch(
-        instrument=specification or instrument(),
+        instrument=selected_instrument,
         broker_code="mt5-demo",
         timeframe="M15",
         raw_rates=(source_rate,),
@@ -167,6 +183,41 @@ def test_store_when_same_batch_replayed_deduplicates_raw_and_upserts_candle() ->
     assert second.raw_rows == 0
     assert row_count(RawMarketRateModel) == 1
     assert row_count(CandleModel) == 1
+
+
+def test_store_keeps_multiple_symbols_isolated_and_idempotent() -> None:
+    store = repository()
+    eurusd = batch(specification=instrument(symbol="EURUSD"))
+    xauusd = batch(
+        specification=instrument(symbol="XAUUSD", asset_class=AssetClass.METAL),
+    )
+
+    store.store(eurusd)
+    store.store(xauusd)
+    eurusd_replay = store.store(eurusd)
+    xauusd_replay = store.store(xauusd)
+
+    assert eurusd_replay.raw_rows == 0
+    assert xauusd_replay.raw_rows == 0
+    assert row_count(InstrumentModel) == 2
+    assert row_count(RawMarketRateModel) == 2
+    assert row_count(CandleModel) == 2
+    assert (
+        len(
+            store.latest_closed_candles(
+                broker_code="mt5-demo", symbol="EURUSD", timeframe="M15", limit=10
+            )
+        )
+        == 1
+    )
+    assert (
+        len(
+            store.latest_closed_candles(
+                broker_code="mt5-demo", symbol="XAUUSD", timeframe="M15", limit=10
+            )
+        )
+        == 1
+    )
 
 
 def test_store_when_candle_is_revised_updates_normalized_record() -> None:

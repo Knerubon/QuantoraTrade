@@ -3,19 +3,31 @@ symbols:
     asset_class: metal
     enabled: true
     timeframes: [M15, H1]
+    session_timezone: UTC
+    session_profile: metals_24x5
+    max_spread_points: 80
     risk_profile: gold_default
   EURUSD:
     asset_class: forex
     enabled: true
     timeframes: [M15, H1]
+    session_timezone: UTC
+    session_profile: forex_24x5
+    max_spread_points: 30
     risk_profile: forex_major
   GBPUSD:
     asset_class: forex
     enabled: false
     timeframes: [M15, H1]
+    session_timezone: UTC
+    session_profile: forex_24x5
+    max_spread_points: 35
     risk_profile: forex_major
   USDJPY:
     asset_class: forex
     enabled: false
     timeframes: [M15, H1]
+    session_timezone: UTC
+    session_profile: forex_24x5
+    max_spread_points: 35
     risk_profile: forex_major

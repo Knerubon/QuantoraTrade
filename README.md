@@ -2,7 +2,7 @@
 
 แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ รองรับสินทรัพย์หลายประเภท โดยเริ่มทดสอบกับ **XAUUSD และตลาด Forex** และออกแบบให้ขยายตลาดได้โดยไม่ผูก logic กับสัญลักษณ์ใดสัญลักษณ์หนึ่ง
 
-> สถานะ: เริ่มต้นวางรากฐานโครงการ (Planning & Documentation)
+> สถานะ: Phase 1 — Market Data เสร็จแล้ว และพร้อมเริ่ม Phase 2 — Technical Strategy
 
 ## เป้าหมาย
 
@@ -28,7 +28,7 @@ QuantoraTrade จะรวมข้อมูลตลาด การวิเ�
 - การบริหารความเสี่ยง: Position Size, Stop Loss, Take Profit, Daily Loss Limit และ Consecutive Loss Guard
 - การติดตาม: Database, API, Dashboard และ Telegram Alert
 
-## Phase 1 — Market Data (กำลังพัฒนา)
+## Phase 1 — Market Data (เสร็จแล้ว)
 
 Market Data Layer รองรับการแปลงข้อมูล MT5 เป็น Domain Models, ตรวจ closed candles, symbol/timeframe identity, duplicates, ordering, gaps และ stale data โดยจะหยุดแบบ fail closed เมื่อข้อมูลไม่ปลอดภัย
 
@@ -50,6 +50,10 @@ alembic upgrade head
 
 Storage เก็บ Raw Rates แบบ append-only/deduplicated และ Normalized Candles แบบ upsert พร้อม source และ payload checksum
 
+Symbol Specification ครอบคลุม digits, point, pip/tick size, tick value, contract size, volume limits, observed spread และ session identity โดยค่าจำกัด spread และ session profile กำหนดแยกตาม symbol ใน configuration
+
+ก่อนรับรอง MT5 environment ใหม่ ให้ทำตาม [MT5 Terminal Validation Checklist](docs/13_MT5_TERMINAL_VALIDATION.md)
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)
@@ -64,8 +68,9 @@ Storage เก็บ Raw Rates แบบ append-only/deduplicated และ Norm
 10. [Backtesting Framework](docs/10_BACKTESTING_FRAMEWORK.md)
 11. [Coding Standards](docs/11_CODING_STANDARDS.md)
 12. [Project Decisions](docs/12_PROJECT_DECISIONS.md)
+13. [MT5 Terminal Validation Checklist](docs/13_MT5_TERMINAL_VALIDATION.md)
 
-เอกสาร Foundation ชุดแรกครบแล้ว ขั้นถัดไปคือสร้าง Python project scaffold, configuration schemas, domain contracts และ CI.
+Phase 0 Foundation และ Phase 1 Market Data เสร็จแล้ว ขั้นถัดไปคือ Phase 2 Technical Strategy
 
 ## สถานะสำคัญ
 

@@ -5,8 +5,8 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
-from quantora_trade.config.settings import AppSettings, RiskPolicySettings
-from quantora_trade.domain.enums import TradingMode
+from quantora_trade.config.settings import AppSettings, RiskPolicySettings, SymbolSettings
+from quantora_trade.domain.enums import AssetClass, TradingMode
 
 
 def test_app_settings_by_default_disables_live_trading() -> None:
@@ -46,3 +46,27 @@ def test_risk_policy_accepts_complete_backtest_limits() -> None:
     )
 
     assert policy.missing_limits() == ()
+
+
+def test_symbol_settings_accepts_session_and_spread_policy() -> None:
+    settings = SymbolSettings(
+        asset_class=AssetClass.METAL,
+        enabled=True,
+        timeframes=("M15", "H1"),
+        risk_profile="gold_default",
+        session_timezone="UTC",
+        session_profile="metals_24x5",
+        max_spread_points=80,
+    )
+
+    assert settings.session_profile == "metals_24x5"
+    assert settings.max_spread_points == 80
+
+
+def test_symbol_settings_rejects_non_positive_spread_limit() -> None:
+    with pytest.raises(ValidationError, match="max_spread_points"):
+        SymbolSettings(
+            asset_class=AssetClass.FOREX,
+            risk_profile="forex_major",
+            max_spread_points=0,
+        )

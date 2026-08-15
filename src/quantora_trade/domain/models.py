@@ -27,9 +27,13 @@ class Instrument:
     quote_currency: str
     digits: int
     point: Decimal
+    pip_size: Decimal
     tick_size: Decimal
     tick_value: Decimal
     contract_size: Decimal
+    spread_points: int
+    session_timezone: str
+    session_profile: str
     volume_min: Decimal
     volume_max: Decimal
     volume_step: Decimal
@@ -41,6 +45,7 @@ class Instrument:
             raise ValueError("digits must be non-negative")
         for field_name in (
             "point",
+            "pip_size",
             "tick_size",
             "tick_value",
             "contract_size",
@@ -49,6 +54,12 @@ class Instrument:
             "volume_step",
         ):
             _require_positive(getattr(self, field_name), field_name)
+        if self.spread_points < 0:
+            raise ValueError("spread_points must be non-negative")
+        if not self.session_timezone.strip():
+            raise ValueError("session_timezone must not be empty")
+        if not self.session_profile.strip():
+            raise ValueError("session_profile must not be empty")
         if self.volume_min > self.volume_max:
             raise ValueError("volume_min must not exceed volume_max")
 

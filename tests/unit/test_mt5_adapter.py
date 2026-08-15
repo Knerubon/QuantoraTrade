@@ -53,6 +53,7 @@ def symbol_info(*, currency_base: str | None = "EUR") -> MT5SymbolInfo:
         currency_profit="USD",
         digits=5 if currency_base else 2,
         point=Decimal("0.00001") if currency_base else Decimal("0.01"),
+        spread_points=12 if currency_base else 25,
         trade_tick_size=Decimal("0.00001") if currency_base else Decimal("0.01"),
         trade_tick_value=Decimal("1"),
         trade_contract_size=Decimal("100000") if currency_base else Decimal("100"),
@@ -83,6 +84,10 @@ def test_adapter_maps_forex_symbol_specification() -> None:
     assert instrument.symbol == "EURUSD"
     assert instrument.asset_class is AssetClass.FOREX
     assert instrument.tick_size == Decimal("0.00001")
+    assert instrument.pip_size == Decimal("0.00010")
+    assert instrument.spread_points == 12
+    assert instrument.session_timezone == "UTC"
+    assert instrument.session_profile == "broker_defined"
 
 
 def test_adapter_maps_non_currency_symbol_to_metal() -> None:

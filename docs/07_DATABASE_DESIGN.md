@@ -104,9 +104,13 @@ Broker account identifier ที่อาจเป็นข้อมูลอ่
 | quote_currency | VARCHAR(10) | NOT NULL |
 | digits | SMALLINT | NOT NULL |
 | point | NUMERIC(24,12) | NOT NULL |
+| pip_size | NUMERIC(24,12) | NOT NULL |
 | tick_size | NUMERIC(24,12) | NOT NULL |
 | tick_value | NUMERIC(24,8) | NOT NULL |
 | contract_size | NUMERIC(24,8) | NOT NULL |
+| spread_points | INTEGER | NOT NULL, observed broker spread |
+| session_timezone | VARCHAR(64) | NOT NULL |
+| session_profile | VARCHAR(64) | NOT NULL |
 | volume_min | NUMERIC(18,8) | NOT NULL |
 | volume_max | NUMERIC(18,8) | NOT NULL |
 | volume_step | NUMERIC(18,8) | NOT NULL |
