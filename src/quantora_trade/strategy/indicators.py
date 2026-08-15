@@ -5,6 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from quantora_trade.domain.models import Candle
+from quantora_trade.strategy.validation import validate_closed_candle_series
 
 HUNDRED = Decimal("100")
 
@@ -159,28 +160,13 @@ def _atr(candles: tuple[Candle, ...], period: int) -> tuple[Decimal | None, ...]
     return tuple(result)
 
 
-def _validate_candles(candles: tuple[Candle, ...]) -> None:
-    if not candles:
-        raise ValueError("at least one candle is required")
-    identity = (candles[0].symbol, candles[0].timeframe)
-    previous_open: datetime | None = None
-    for candle in candles:
-        if not candle.is_closed:
-            raise ValueError("indicators require closed candles")
-        if (candle.symbol, candle.timeframe) != identity:
-            raise ValueError("candles must share symbol and timeframe")
-        if previous_open is not None and candle.open_time <= previous_open:
-            raise ValueError("candles must be strictly ordered without duplicates")
-        previous_open = candle.open_time
-
-
 def calculate_indicators(
     candles: tuple[Candle, ...],
     config: IndicatorConfig | None = None,
 ) -> tuple[TechnicalIndicatorPoint, ...]:
     """Calculate a causal series; each point uses its candle and earlier history only."""
 
-    _validate_candles(candles)
+    validate_closed_candle_series(candles)
     config = config or IndicatorConfig()
     closes = tuple(candle.close for candle in candles)
     ema_fast = _ema(closes, config.ema_fast)
