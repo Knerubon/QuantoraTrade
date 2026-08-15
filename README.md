@@ -28,6 +28,19 @@ QuantoraTrade จะรวมข้อมูลตลาด การวิเ�
 - การบริหารความเสี่ยง: Position Size, Stop Loss, Take Profit, Daily Loss Limit และ Consecutive Loss Guard
 - การติดตาม: Database, API, Dashboard และ Telegram Alert
 
+## Phase 1 — Market Data (กำลังพัฒนา)
+
+Market Data Layer รองรับการแปลงข้อมูล MT5 เป็น Domain Models, ตรวจ closed candles, symbol/timeframe identity, duplicates, ordering, gaps และ stale data โดยจะหยุดแบบ fail closed เมื่อข้อมูลไม่ปลอดภัย
+
+ทดสอบแบบ read-only บน Windows ที่ติดตั้ง MT5 Terminal:
+
+```bash
+python -m pip install -e ".[mt5]"
+python scripts/check_mt5_market_data.py --symbol XAUUSD --timeframe M15 --limit 100
+```
+
+คำสั่งนี้อ่าน Symbol Specification และ OHLCV เท่านั้น ไม่มีการส่งหรือแก้ไข Order
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)
