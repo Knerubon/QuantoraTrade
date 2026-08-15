@@ -7,19 +7,23 @@
 - [x] กำหนด Vision
 - [x] กำหนด Product Requirements เบื้องต้น
 - [x] กำหนด Architecture และ Technology Stack แบบ Multi-Asset
-- [ ] กำหนด Coding Standards และ branching strategy
-- [ ] สร้างโครง Python project และ CI
+- [x] กำหนด Coding Standards และ branching strategy
+- [x] สร้างโครง Python project และ CI
 
 ## Phase 1 — Data Layer
 
-- [x] สร้าง MT5 Market Data Adapter แบบ read-only (รอทดสอบกับ Terminal จริง)
+- [x] สร้าง MT5 Market Data Adapter แบบ read-only
 - [x] รองรับการดึงและ normalize OHLCV ของหลาย symbols ผ่าน adapter
-- [ ] สร้าง Symbol Specification สำหรับ digits, pip/tick size, tick value, contract size, session และ spread
+- [x] สร้าง Symbol Specification สำหรับ digits, pip/tick size, tick value, contract size, session และ spread
 - [x] ตรวจ data quality แบบ fail closed
 - [x] จัดเก็บ Raw Rates และ Normalized Candles ลง PostgreSQL แบบ idempotent
 - [x] สร้าง Fake Gateway และ unit tests
+- [x] เพิ่ม PostgreSQL integration tests สำหรับ multi-symbol isolation และ idempotent replay
+- [x] จัดทำ checklist สำหรับตรวจ MT5 Terminal จริงแบบ read-only
 
 **Exit criteria:** นำเข้าข้อมูลหลาย symbols ซ้ำได้ ผลตรงกัน และตรวจจับ missing/duplicate candles แยกตาม symbol ได้
+
+**สถานะ:** Phase 1 implementation complete; การรับรอง broker/terminal แต่ละ environment ให้ทำตาม `13_MT5_TERMINAL_VALIDATION.md` ก่อนใช้งาน
 
 ## Phase 2 — Technical Strategy
 
@@ -87,7 +91,7 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-เอกสาร Foundation ครบแล้ว ขั้นถัดไปคือ Implementation Phase 0
+Phase 0 และ Phase 1 เสร็จแล้ว ขั้นถัดไปคือ Phase 2 — Technical Strategy
 
 
 ## Documentation Progress
