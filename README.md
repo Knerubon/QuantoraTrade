@@ -41,8 +41,9 @@ QuantoraTrade จะรวมข้อมูลตลาด การวิเ�
 9. [Risk Management](docs/09_RISK_MANAGEMENT.md)
 10. [Backtesting Framework](docs/10_BACKTESTING_FRAMEWORK.md)
 11. [Coding Standards](docs/11_CODING_STANDARDS.md)
+12. [Project Decisions](docs/12_PROJECT_DECISIONS.md)
 
-เอกสารลำดับถัดไปจะครอบคลุม Project Decisions.
+เอกสาร Foundation ชุดแรกครบแล้ว ขั้นถัดไปคือสร้าง Python project scaffold, configuration schemas, domain contracts และ CI.
 
 ## สถานะสำคัญ
 
