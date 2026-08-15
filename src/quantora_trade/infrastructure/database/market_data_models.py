@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import ClassVar
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -28,7 +27,7 @@ class BrokerModel(Base):
     """Market-data or execution broker reference."""
 
     __tablename__ = "brokers"
-    __table_args__: ClassVar[dict[str, str]] = {"schema": "quantora"}
+    __table_args__ = {"schema": "quantora"}  # noqa: RUF012
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
