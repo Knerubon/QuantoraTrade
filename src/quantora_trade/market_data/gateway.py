@@ -17,6 +17,7 @@ class MT5SymbolInfo:
     currency_profit: str
     digits: int
     point: Decimal
+    spread_points: int
     trade_tick_size: Decimal
     trade_tick_value: Decimal
     trade_contract_size: Decimal
