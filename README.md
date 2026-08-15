@@ -38,8 +38,9 @@ QuantoraTrade จะรวมข้อมูลตลาด การวิเ�
 6. [Trading Logic](docs/06_TRADING_LOGIC.md)
 7. [Database Design](docs/07_DATABASE_DESIGN.md)
 8. [API Specification](docs/08_API_SPECIFICATION.md)
+9. [Risk Management](docs/09_RISK_MANAGEMENT.md)
 
-เอกสารลำดับถัดไปจะครอบคลุม Risk Management, Backtesting, Coding Standards และ Project Decisions.
+เอกสารลำดับถัดไปจะครอบคลุม Backtesting, Coding Standards และ Project Decisions.
 
 ## สถานะสำคัญ
 
