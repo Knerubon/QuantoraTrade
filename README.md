@@ -1,6 +1,6 @@
 # QuantoraTrade
 
-แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ โดยเริ่มจากตลาดทองคำ **XAUUSD** และออกแบบให้ทดสอบได้ก่อนใช้งานจริง
+แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ รองรับสินทรัพย์หลายประเภท โดยเริ่มทดสอบกับ **XAUUSD และตลาด Forex** และออกแบบให้ขยายตลาดได้โดยไม่ผูก logic กับสัญลักษณ์ใดสัญลักษณ์หนึ่ง
 
 > สถานะ: เริ่มต้นวางรากฐานโครงการ (Planning & Documentation)
 
@@ -19,7 +19,8 @@ QuantoraTrade จะรวมข้อมูลตลาด การวิเ�
 
 ## ขอบเขตเวอร์ชันแรก
 
-- สินทรัพย์: XAUUSD
+- สินทรัพย์: Metals และ Forex เช่น XAUUSD, EURUSD, GBPUSD และ USDJPY
+- Symbol, timeframe, trading session และกฎเฉพาะสินทรัพย์กำหนดผ่าน configuration
 - แหล่งข้อมูล/Execution: MetaTrader 5
 - โหมด: Backtest, Paper Trade, Live Trade
 - สัญญาณ: BUY, SELL, HOLD พร้อม confidence และเหตุผล
