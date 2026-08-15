@@ -87,7 +87,7 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-1. Project Decisions
+เอกสาร Foundation ครบแล้ว ขั้นถัดไปคือ Implementation Phase 0
 
 
 ## Documentation Progress
@@ -99,3 +99,4 @@
 - [x] Multi-Asset Risk Management
 - [x] Reproducible Backtesting Framework
 - [x] Coding Standards and CI Quality Gates
+- [x] Project Decision Log
