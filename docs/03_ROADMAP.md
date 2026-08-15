@@ -29,8 +29,8 @@
 
 - [x] EMA 9/21/50
 - [x] RSI, MACD และ ATR
-- [ ] Support/Resistance
-- [ ] Candlestick Pattern
+- [x] Support/Resistance
+- [x] Candlestick Pattern
 - [ ] Signal schema: symbol + timeframe + BUY/SELL/HOLD
 - [ ] Strategy configuration แบบ global และ per-symbol override
 - [ ] Unit tests
