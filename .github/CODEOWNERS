@@ -1,0 +1,8 @@
+# Project owner review is required once branch protection is enabled.
+* @Knerubon
+
+# Trading-critical boundaries
+/src/quantora_trade/risk/ @Knerubon
+/src/quantora_trade/execution/ @Knerubon
+/src/quantora_trade/domain/ @Knerubon
+/migrations/ @Knerubon

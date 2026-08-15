@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Test and quality
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+config/*.local.yaml
+*.pem
+*.key
+
+# Data and artifacts
+data/
+artifacts/
+models/
+reports/
+*.parquet
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

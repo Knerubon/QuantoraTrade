@@ -1,0 +1,21 @@
+symbols:
+  XAUUSD:
+    asset_class: metal
+    enabled: true
+    timeframes: [M15, H1]
+    risk_profile: gold_default
+  EURUSD:
+    asset_class: forex
+    enabled: true
+    timeframes: [M15, H1]
+    risk_profile: forex_major
+  GBPUSD:
+    asset_class: forex
+    enabled: false
+    timeframes: [M15, H1]
+    risk_profile: forex_major
+  USDJPY:
+    asset_class: forex
+    enabled: false
+    timeframes: [M15, H1]
+    risk_profile: forex_major
