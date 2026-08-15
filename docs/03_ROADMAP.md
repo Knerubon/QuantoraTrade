@@ -6,7 +6,7 @@
 - [x] สร้าง GitHub repository
 - [x] กำหนด Vision
 - [x] กำหนด Product Requirements เบื้องต้น
-- [ ] กำหนด Architecture และ Technology Stack แบบ Multi-Asset
+- [x] กำหนด Architecture และ Technology Stack แบบ Multi-Asset
 - [ ] กำหนด Coding Standards และ branching strategy
 - [ ] สร้างโครง Python project และ CI
 
@@ -87,12 +87,11 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-1. System Architecture
-2. AI Agents
-3. Trading Logic
-4. Database Design
-5. API Specification
-6. Risk Management
-7. Backtesting Framework
-8. Coding Standards
-9. Project Decisions
+1. AI Agents
+2. Trading Logic
+3. Database Design
+4. API Specification
+5. Risk Management
+6. Backtesting Framework
+7. Coding Standards
+8. Project Decisions
