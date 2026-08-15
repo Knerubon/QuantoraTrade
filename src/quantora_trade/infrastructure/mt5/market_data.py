@@ -1,7 +1,7 @@
 """MetaTrader 5 adapter with lazy optional SDK loading."""
 
 from collections.abc import Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from decimal import Decimal
 from importlib import import_module
 from types import ModuleType
@@ -47,17 +47,17 @@ class MetaTrader5Gateway:
         return self._module
 
     def initialize(self) -> None:
-        initialize = cast(Any, getattr(self.module, "initialize"))
+        initialize = cast(Any, self.module).initialize
         if not bool(initialize()):
-            last_error = cast(Any, getattr(self.module, "last_error"))()
+            last_error = cast(Any, self.module).last_error()
             raise MT5ConnectionError(f"MT5 initialize failed: {last_error!r}")
 
     def shutdown(self) -> None:
-        shutdown = cast(Any, getattr(self.module, "shutdown"))
+        shutdown = cast(Any, self.module).shutdown
         shutdown()
 
     def symbol_info(self, symbol: str) -> MT5SymbolInfo | None:
-        get_symbol_info = cast(Any, getattr(self.module, "symbol_info"))
+        get_symbol_info = cast(Any, self.module).symbol_info
         info = get_symbol_info(symbol)
         if info is None:
             return None
@@ -87,7 +87,7 @@ class MetaTrader5Gateway:
         if constant_name is None:
             raise UnsupportedTimeframeError(f"Unsupported timeframe: {timeframe}")
         timeframe_constant = getattr(self.module, constant_name)
-        copy_rates = cast(Any, getattr(self.module, "copy_rates_range"))
+        copy_rates = cast(Any, self.module).copy_rates_range
         rows = copy_rates(symbol, timeframe_constant, date_from, date_to)
         if rows is None:
             last_error = cast(Any, getattr(self.module, "last_error"))()
