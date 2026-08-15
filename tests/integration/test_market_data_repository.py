@@ -27,7 +27,9 @@ from quantora_trade.market_data.quality import (
 )
 from quantora_trade.market_data.storage import CandleRecord, MarketDataBatch, RawRateRecord
 
-DATABASE_URL = os.environ["QUANTORA_DATABASE_URL"]
+DATABASE_URL = os.getenv("QUANTORA_DATABASE_URL")
+if not DATABASE_URL:
+    pytest.skip("QUANTORA_DATABASE_URL is required for integration tests", allow_module_level=True)
 NOW = datetime(2026, 8, 16, 12, 0, tzinfo=UTC)
 
 engine = create_engine(DATABASE_URL)
