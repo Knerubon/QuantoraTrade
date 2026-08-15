@@ -90,7 +90,7 @@ class MetaTrader5Gateway:
         copy_rates = cast(Any, self.module).copy_rates_range
         rows = copy_rates(symbol, timeframe_constant, date_from, date_to)
         if rows is None:
-            last_error = cast(Any, getattr(self.module, "last_error"))()
+            last_error = cast(Any, self.module).last_error()
             raise MT5ConnectionError(f"MT5 copy_rates_range failed: {last_error!r}")
         return tuple(
             MT5Rate(
