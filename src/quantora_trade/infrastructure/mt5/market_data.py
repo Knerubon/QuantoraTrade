@@ -118,9 +118,7 @@ class MT5MarketDataAdapter:
         if info is None:
             raise SymbolNotFoundError(f"MT5 symbol was not found: {symbol}")
         asset_class = (
-            AssetClass.FOREX
-            if info.currency_base and info.currency_profit
-            else AssetClass.METAL
+            AssetClass.FOREX if info.currency_base and info.currency_profit else AssetClass.METAL
         )
         return Instrument(
             symbol=info.symbol,
