@@ -87,11 +87,10 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-1. API Specification
-2. Risk Management
-3. Backtesting Framework
-4. Coding Standards
-5. Project Decisions
+1. Risk Management
+2. Backtesting Framework
+3. Coding Standards
+4. Project Decisions
 
 
 ## Documentation Progress
@@ -99,3 +98,4 @@
 - [x] AI Agents architecture and safety policy
 - [x] Multi-Asset Trading Logic
 - [x] PostgreSQL Database Design
+- [x] FastAPI Specification and Control Safeguards
