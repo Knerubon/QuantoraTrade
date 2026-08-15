@@ -87,9 +87,8 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-1. Backtesting Framework
-2. Coding Standards
-3. Project Decisions
+1. Coding Standards
+2. Project Decisions
 
 
 ## Documentation Progress
@@ -99,3 +98,4 @@
 - [x] PostgreSQL Database Design
 - [x] FastAPI Specification and Control Safeguards
 - [x] Multi-Asset Risk Management
+- [x] Reproducible Backtesting Framework
