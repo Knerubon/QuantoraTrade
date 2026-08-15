@@ -12,12 +12,12 @@
 
 ## Phase 1 — Data Layer
 
-- [ ] เชื่อมต่อ MetaTrader 5
-- [ ] ดึง OHLCV ของ XAUUSD และคู่เงิน Forex หลาย symbols
+- [x] สร้าง MT5 Market Data Adapter แบบ read-only (รอทดสอบกับ Terminal จริง)
+- [x] รองรับการดึงและ normalize OHLCV ของหลาย symbols ผ่าน adapter
 - [ ] สร้าง Symbol Specification สำหรับ digits, pip/tick size, tick value, contract size, session และ spread
-- [ ] ตรวจ data quality
+- [x] ตรวจ data quality แบบ fail closed
 - [ ] จัดเก็บ raw/processed data
-- [ ] สร้าง test fixtures
+- [x] สร้าง Fake Gateway และ unit tests
 
 **Exit criteria:** นำเข้าข้อมูลหลาย symbols ซ้ำได้ ผลตรงกัน และตรวจจับ missing/duplicate candles แยกตาม symbol ได้
 
