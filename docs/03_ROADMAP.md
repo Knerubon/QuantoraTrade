@@ -87,11 +87,15 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-1. AI Agents
-2. Trading Logic
-3. Database Design
-4. API Specification
-5. Risk Management
-6. Backtesting Framework
-7. Coding Standards
-8. Project Decisions
+1. Trading Logic
+2. Database Design
+3. API Specification
+4. Risk Management
+5. Backtesting Framework
+6. Coding Standards
+7. Project Decisions
+
+
+## Documentation Progress
+
+- [x] AI Agents architecture and safety policy
