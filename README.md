@@ -34,8 +34,9 @@ QuantoraTrade จะรวมข้อมูลตลาด การวิเ�
 2. [Product Requirements](docs/02_PRODUCT_REQUIREMENTS.md)
 3. [Roadmap](docs/03_ROADMAP.md)
 4. [System Architecture](docs/04_SYSTEM_ARCHITECTURE.md)
+5. [AI Agents](docs/05_AI_AGENTS.md)
 
-เอกสารลำดับถัดไปจะครอบคลุม AI Agents, Trading Logic, Database, API, Risk Management, Backtesting, Coding Standards และ Project Decisions.
+เอกสารลำดับถัดไปจะครอบคลุม Trading Logic, Database, API, Risk Management, Backtesting, Coding Standards และ Project Decisions.
 
 ## สถานะสำคัญ
 
