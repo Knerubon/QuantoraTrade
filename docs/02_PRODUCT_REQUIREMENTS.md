@@ -2,14 +2,16 @@
 
 ## 1. เป้าหมาย MVP
 
-สร้างระบบต้นแบบสำหรับ XAUUSD ที่รับข้อมูลจาก MetaTrader 5 วิเคราะห์สัญญาณ ประเมินความเสี่ยง ตัดสินใจ BUY/SELL/HOLD และทดสอบผ่าน Backtest กับ Paper Trade ได้ โดยยังไม่เปิด Live Trade เป็นค่าเริ่มต้น
+สร้างระบบต้นแบบแบบ Multi-Asset สำหรับ Metals และ Forex ที่รับข้อมูลจาก MetaTrader 5 วิเคราะห์สัญญาณ ประเมินความเสี่ยง ตัดสินใจ BUY/SELL/HOLD และทดสอบผ่าน Backtest กับ Paper Trade ได้ โดยยังไม่เปิด Live Trade เป็นค่าเริ่มต้น
 
 ## 2. Functional Requirements
 
 ### FR-01 Market Data
 
-- รับ OHLCV จาก MT5
+- รับ OHLCV จาก MT5 สำหรับหลาย symbols
+- รองรับ Metals และ Forex เช่น XAUUSD, EURUSD, GBPUSD และ USDJPY
 - รองรับ timeframe อย่างน้อย M5, M15 และ H1
+- เลือกเปิด/ปิด symbol และกำหนด timeframe ผ่าน configuration
 - ตรวจ timestamp, missing candles, duplicate candles และลำดับข้อมูล
 - เก็บข้อมูลดิบแยกจากข้อมูลที่ผ่านการแปลง
 
@@ -35,7 +37,7 @@
 
 ### FR-05 Risk Management
 
-- คำนวณ position size จาก equity และ risk per trade
+- คำนวณ position size จาก equity, risk per trade, tick size, tick value, contract size และข้อกำหนดของแต่ละ symbol
 - กำหนด Stop Loss และ Take Profit
 - จำกัด daily loss, consecutive losses และจำนวนสถานะพร้อมกัน
 - ปฏิเสธ order เมื่อข้อมูลไม่ครบ ตลาดผิดปกติ หรือเกินขีดจำกัด
@@ -75,6 +77,8 @@
 ## 3. Non-functional Requirements
 
 - Python เป็นภาษาหลักของระบบวิเคราะห์และ backend
+- Domain model ห้ามสมมติ pip size, digits, contract size หรือ trading session แบบเดียวกันทุกสินทรัพย์
+- Strategy ต้องประกาศว่าใช้ร่วมกันทุก symbol หรือมี parameter เฉพาะ symbol
 - Config แยกจาก source code และตรวจ schema ก่อนเริ่มระบบ
 - Secret อ่านจาก environment หรือ secret manager เท่านั้น
 - มี unit, integration และ backtest regression tests
@@ -106,6 +110,7 @@
 - risk per trade
 - daily loss limit
 - maximum drawdown
-- session ที่อนุญาตให้เทรด
+- รายการ symbols สำหรับ MVP
+- session ที่อนุญาตให้เทรดในแต่ละ symbol
 - spread/slippage สูงสุด
 - เกณฑ์ผ่าน Backtest และ Paper Trade
