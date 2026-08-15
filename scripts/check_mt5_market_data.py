@@ -8,7 +8,7 @@ import argparse
 import json
 from datetime import UTC, datetime, timedelta
 
-from quantora_trade.infrastructure.mt5 import MT5MarketDataAdapter, MetaTrader5Gateway
+from quantora_trade.infrastructure.mt5 import MetaTrader5Gateway, MT5MarketDataAdapter
 from quantora_trade.market_data import MarketDataService, MarketDataValidator
 from quantora_trade.market_data.timeframes import Timeframe
 
