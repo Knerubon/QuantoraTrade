@@ -68,6 +68,7 @@ class MetaTrader5Gateway:
             currency_profit=str(info.currency_profit),
             digits=int(info.digits),
             point=_decimal(info.point),
+            spread_points=int(info.spread),
             trade_tick_size=_decimal(info.trade_tick_size),
             trade_tick_value=_decimal(info.trade_tick_value),
             trade_contract_size=_decimal(info.trade_contract_size),
@@ -110,8 +111,16 @@ class MetaTrader5Gateway:
 class MT5MarketDataAdapter:
     """Normalizes broker-specific MT5 data into domain contracts."""
 
-    def __init__(self, gateway: MT5Gateway) -> None:
+    def __init__(
+        self,
+        gateway: MT5Gateway,
+        *,
+        session_timezone: str = "UTC",
+        session_profile: str = "broker_defined",
+    ) -> None:
         self._gateway = gateway
+        self._session_timezone = session_timezone
+        self._session_profile = session_profile
 
     def instrument(self, symbol: str) -> Instrument:
         info = self._gateway.symbol_info(symbol)
@@ -126,9 +135,13 @@ class MT5MarketDataAdapter:
             quote_currency=info.currency_profit,
             digits=info.digits,
             point=info.point,
+            pip_size=info.point * (10 if info.digits in {3, 5} else 1),
             tick_size=info.trade_tick_size,
             tick_value=info.trade_tick_value,
             contract_size=info.trade_contract_size,
+            spread_points=info.spread_points,
+            session_timezone=self._session_timezone,
+            session_profile=self._session_profile,
             volume_min=info.volume_min,
             volume_max=info.volume_max,
             volume_step=info.volume_step,
