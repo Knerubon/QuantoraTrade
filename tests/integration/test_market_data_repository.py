@@ -6,7 +6,7 @@ from decimal import Decimal
 
 import pytest
 from sqlalchemy import create_engine, delete, func, select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from quantora_trade.domain.enums import AssetClass
 from quantora_trade.domain.models import Candle, Instrument
