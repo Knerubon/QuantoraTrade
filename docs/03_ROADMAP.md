@@ -87,10 +87,9 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-1. Risk Management
-2. Backtesting Framework
-3. Coding Standards
-4. Project Decisions
+1. Backtesting Framework
+2. Coding Standards
+3. Project Decisions
 
 
 ## Documentation Progress
@@ -99,3 +98,4 @@
 - [x] Multi-Asset Trading Logic
 - [x] PostgreSQL Database Design
 - [x] FastAPI Specification and Control Safeguards
+- [x] Multi-Asset Risk Management
