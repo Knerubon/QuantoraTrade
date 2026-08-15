@@ -52,28 +52,16 @@ def upgrade() -> None:
         sa.Column("observed_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint(
-            "contract_size > 0", name=op.f("ck_instruments_contract_size_positive")
-        ),
-        sa.CheckConstraint(
-            "digits >= 0", name=op.f("ck_instruments_digits_non_negative")
-        ),
+        sa.CheckConstraint("contract_size > 0", name=op.f("ck_instruments_contract_size_positive")),
+        sa.CheckConstraint("digits >= 0", name=op.f("ck_instruments_digits_non_negative")),
         sa.CheckConstraint("point > 0", name=op.f("ck_instruments_point_positive")),
-        sa.CheckConstraint(
-            "tick_size > 0", name=op.f("ck_instruments_tick_size_positive")
-        ),
-        sa.CheckConstraint(
-            "tick_value > 0", name=op.f("ck_instruments_tick_value_positive")
-        ),
+        sa.CheckConstraint("tick_size > 0", name=op.f("ck_instruments_tick_size_positive")),
+        sa.CheckConstraint("tick_value > 0", name=op.f("ck_instruments_tick_value_positive")),
         sa.CheckConstraint(
             "volume_max >= volume_min", name=op.f("ck_instruments_volume_range_valid")
         ),
-        sa.CheckConstraint(
-            "volume_min > 0", name=op.f("ck_instruments_volume_min_positive")
-        ),
-        sa.CheckConstraint(
-            "volume_step > 0", name=op.f("ck_instruments_volume_step_positive")
-        ),
+        sa.CheckConstraint("volume_min > 0", name=op.f("ck_instruments_volume_min_positive")),
+        sa.CheckConstraint("volume_step > 0", name=op.f("ck_instruments_volume_step_positive")),
         sa.ForeignKeyConstraint(
             ["broker_id"],
             ["quantora.brokers.id"],
@@ -101,9 +89,7 @@ def upgrade() -> None:
         sa.Column("payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("payload_hash", sa.String(length=64), nullable=False),
         sa.Column("ingested_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint(
-            "high >= low", name=op.f("ck_raw_market_rates_raw_high_not_below_low")
-        ),
+        sa.CheckConstraint("high >= low", name=op.f("ck_raw_market_rates_raw_high_not_below_low")),
         sa.CheckConstraint(
             "tick_volume >= 0",
             name=op.f("ck_raw_market_rates_raw_tick_volume_non_negative"),
@@ -151,9 +137,7 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "close_time > open_time", name=op.f("ck_candles_candle_time_range_valid")
         ),
-        sa.CheckConstraint(
-            "high >= low", name=op.f("ck_candles_candle_high_not_below_low")
-        ),
+        sa.CheckConstraint("high >= low", name=op.f("ck_candles_candle_high_not_below_low")),
         sa.CheckConstraint(
             "tick_volume IS NULL OR tick_volume >= 0",
             name=op.f("ck_candles_tick_volume_non_negative"),
@@ -216,9 +200,7 @@ def downgrade() -> None:
     op.drop_table("market_data_issues", schema="quantora")
     op.drop_index("ix_candles_lookup", table_name="candles", schema="quantora")
     op.drop_table("candles", schema="quantora")
-    op.drop_index(
-        "ix_raw_rates_lookup", table_name="raw_market_rates", schema="quantora"
-    )
+    op.drop_index("ix_raw_rates_lookup", table_name="raw_market_rates", schema="quantora")
     op.drop_table("raw_market_rates", schema="quantora")
     op.drop_table("instruments", schema="quantora")
     op.drop_table("brokers", schema="quantora")
