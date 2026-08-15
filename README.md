@@ -2,7 +2,7 @@
 
 แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ รองรับสินทรัพย์หลายประเภท โดยเริ่มทดสอบกับ **XAUUSD และตลาด Forex** และออกแบบให้ขยายตลาดได้โดยไม่ผูก logic กับสัญลักษณ์ใดสัญลักษณ์หนึ่ง
 
-> สถานะ: Phase 1 — Market Data เสร็จแล้ว และพร้อมเริ่ม Phase 2 — Technical Strategy
+> สถานะ: Phase 1 — Market Data เสร็จแล้ว และกำลังพัฒนา Phase 2 — Technical Strategy
 
 ## เป้าหมาย
 
@@ -53,6 +53,10 @@ Storage เก็บ Raw Rates แบบ append-only/deduplicated และ Norm
 Symbol Specification ครอบคลุม digits, point, pip/tick size, tick value, contract size, volume limits, observed spread และ session identity โดยค่าจำกัด spread และ session profile กำหนดแยกตาม symbol ใน configuration
 
 ก่อนรับรอง MT5 environment ใหม่ ให้ทำตาม [MT5 Terminal Validation Checklist](docs/13_MT5_TERMINAL_VALIDATION.md)
+
+## Phase 2 — Technical Strategy (กำลังพัฒนา)
+
+Indicator engine คำนวณ EMA 9/21/50, RSI 14, MACD 12/26/9 และ ATR 14 ด้วย `Decimal` จาก closed candles ที่เรียงตามเวลาเท่านั้น ผลลัพธ์ทุกจุดเป็น causal และไม่อ่านข้อมูล candle ในอนาคต
 
 ## เอกสารโครงการ
 

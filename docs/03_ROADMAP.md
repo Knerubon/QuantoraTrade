@@ -27,8 +27,8 @@
 
 ## Phase 2 — Technical Strategy
 
-- [ ] EMA 9/21/50
-- [ ] RSI, MACD และ ATR
+- [x] EMA 9/21/50
+- [x] RSI, MACD และ ATR
 - [ ] Support/Resistance
 - [ ] Candlestick Pattern
 - [ ] Signal schema: symbol + timeframe + BUY/SELL/HOLD
