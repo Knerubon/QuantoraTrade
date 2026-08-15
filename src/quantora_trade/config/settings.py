@@ -16,6 +16,9 @@ class SymbolSettings(BaseModel):
     enabled: bool = False
     timeframes: tuple[str, ...] = ("M15", "H1")
     risk_profile: str
+    session_timezone: str = "UTC"
+    session_profile: str = "broker_defined"
+    max_spread_points: int = Field(gt=0)
 
     @model_validator(mode="after")
     def validate_timeframes(self) -> "SymbolSettings":
@@ -23,6 +26,8 @@ class SymbolSettings(BaseModel):
             raise ValueError("at least one timeframe is required")
         if len(set(self.timeframes)) != len(self.timeframes):
             raise ValueError("timeframes must be unique")
+        if not self.session_timezone.strip() or not self.session_profile.strip():
+            raise ValueError("session identity must not be empty")
         return self
 
 
