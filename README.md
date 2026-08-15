@@ -58,6 +58,8 @@ Symbol Specification ครอบคลุม digits, point, pip/tick size, tick
 
 Indicator engine คำนวณ EMA 9/21/50, RSI 14, MACD 12/26/9 และ ATR 14 ด้วย `Decimal` จาก closed candles ที่เรียงตามเวลาเท่านั้น ผลลัพธ์ทุกจุดเป็น causal และไม่อ่านข้อมูล candle ในอนาคต
 
+Market structure engine ยืนยัน swing high/low หลังแท่งด้านขวาปิดครบก่อนสร้าง Support/Resistance zones และ pattern engine ตรวจ Doji, Hammer, Shooting Star และ Engulfing โดยไม่ใช้ข้อมูลอนาคต
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)
