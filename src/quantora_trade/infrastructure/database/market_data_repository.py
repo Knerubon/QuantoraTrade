@@ -10,7 +10,6 @@ from sqlalchemy import Select, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from quantora_trade.domain.enums import AssetClass
 from quantora_trade.domain.models import Candle, Instrument
 from quantora_trade.infrastructure.database.market_data_models import (
     BrokerModel,
