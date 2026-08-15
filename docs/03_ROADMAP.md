@@ -6,19 +6,20 @@
 - [x] สร้าง GitHub repository
 - [x] กำหนด Vision
 - [x] กำหนด Product Requirements เบื้องต้น
-- [ ] กำหนด Architecture และ Technology Stack
+- [ ] กำหนด Architecture และ Technology Stack แบบ Multi-Asset
 - [ ] กำหนด Coding Standards และ branching strategy
 - [ ] สร้างโครง Python project และ CI
 
 ## Phase 1 — Data Layer
 
 - [ ] เชื่อมต่อ MetaTrader 5
-- [ ] ดึง OHLCV ของ XAUUSD
+- [ ] ดึง OHLCV ของ XAUUSD และคู่เงิน Forex หลาย symbols
+- [ ] สร้าง Symbol Specification สำหรับ digits, pip/tick size, tick value, contract size, session และ spread
 - [ ] ตรวจ data quality
 - [ ] จัดเก็บ raw/processed data
 - [ ] สร้าง test fixtures
 
-**Exit criteria:** นำเข้าข้อมูลซ้ำได้ ผลตรงกัน และตรวจจับ missing/duplicate candles ได้
+**Exit criteria:** นำเข้าข้อมูลหลาย symbols ซ้ำได้ ผลตรงกัน และตรวจจับ missing/duplicate candles แยกตาม symbol ได้
 
 ## Phase 2 — Technical Strategy
 
@@ -26,10 +27,11 @@
 - [ ] RSI, MACD และ ATR
 - [ ] Support/Resistance
 - [ ] Candlestick Pattern
-- [ ] Signal schema: BUY/SELL/HOLD
+- [ ] Signal schema: symbol + timeframe + BUY/SELL/HOLD
+- [ ] Strategy configuration แบบ global และ per-symbol override
 - [ ] Unit tests
 
-**Exit criteria:** ไม่มี look-ahead bias และ signal ทำซ้ำได้จากข้อมูล/config เดิม
+**Exit criteria:** ไม่มี look-ahead bias และ signal ของแต่ละ symbol ทำซ้ำได้จากข้อมูล/config เดิม
 
 ## Phase 3 — Backtesting
 
