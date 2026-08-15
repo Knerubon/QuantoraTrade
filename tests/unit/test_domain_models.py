@@ -124,7 +124,7 @@ def test_candle_when_high_is_invalid_rejects_value() -> None:
 
 def test_candle_when_low_is_invalid_rejects_value() -> None:
     with pytest.raises(ValueError, match="low"):
-        make_candle(low=Decimal("1.1020"))
+        make_candle(low=Decimal("1.1007"))
 
 
 def test_candle_when_volume_is_negative_rejects_value() -> None:
