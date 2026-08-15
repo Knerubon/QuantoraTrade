@@ -45,12 +45,14 @@ class InstrumentModel(Base):
         UniqueConstraint("broker_id", "symbol", name="uq_instruments_broker_symbol"),
         CheckConstraint("digits >= 0", name="digits_non_negative"),
         CheckConstraint("point > 0", name="point_positive"),
+        CheckConstraint("pip_size > 0", name="pip_size_positive"),
         CheckConstraint("tick_size > 0", name="tick_size_positive"),
         CheckConstraint("tick_value > 0", name="tick_value_positive"),
         CheckConstraint("contract_size > 0", name="contract_size_positive"),
         CheckConstraint("volume_min > 0", name="volume_min_positive"),
         CheckConstraint("volume_max >= volume_min", name="volume_range_valid"),
         CheckConstraint("volume_step > 0", name="volume_step_positive"),
+        CheckConstraint("spread_points >= 0", name="spread_points_non_negative"),
         {"schema": "quantora"},
     )
 
@@ -66,9 +68,13 @@ class InstrumentModel(Base):
     quote_currency: Mapped[str] = mapped_column(String(10), nullable=False)
     digits: Mapped[int] = mapped_column(Integer, nullable=False)
     point: Mapped[Decimal] = mapped_column(Numeric(24, 12), nullable=False)
+    pip_size: Mapped[Decimal] = mapped_column(Numeric(24, 12), nullable=False)
     tick_size: Mapped[Decimal] = mapped_column(Numeric(24, 12), nullable=False)
     tick_value: Mapped[Decimal] = mapped_column(Numeric(24, 8), nullable=False)
     contract_size: Mapped[Decimal] = mapped_column(Numeric(24, 8), nullable=False)
+    spread_points: Mapped[int] = mapped_column(Integer, nullable=False)
+    session_timezone: Mapped[str] = mapped_column(String(64), nullable=False)
+    session_profile: Mapped[str] = mapped_column(String(64), nullable=False)
     volume_min: Mapped[Decimal] = mapped_column(Numeric(18, 8), nullable=False)
     volume_max: Mapped[Decimal] = mapped_column(Numeric(18, 8), nullable=False)
     volume_step: Mapped[Decimal] = mapped_column(Numeric(18, 8), nullable=False)
