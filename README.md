@@ -40,8 +40,9 @@ QuantoraTrade จะรวมข้อมูลตลาด การวิเ�
 8. [API Specification](docs/08_API_SPECIFICATION.md)
 9. [Risk Management](docs/09_RISK_MANAGEMENT.md)
 10. [Backtesting Framework](docs/10_BACKTESTING_FRAMEWORK.md)
+11. [Coding Standards](docs/11_CODING_STANDARDS.md)
 
-เอกสารลำดับถัดไปจะครอบคลุม Coding Standards และ Project Decisions.
+เอกสารลำดับถัดไปจะครอบคลุม Project Decisions.
 
 ## สถานะสำคัญ
 
