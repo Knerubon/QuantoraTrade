@@ -12,6 +12,22 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: quantora
+          POSTGRES_PASSWORD: quantora
+          POSTGRES_DB: quantora_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quantora -d quantora_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      QUANTORA_DATABASE_URL: postgresql+psycopg://quantora:quantora@localhost:5432/quantora_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,5 +42,7 @@ jobs:
         run: ruff check .
       - name: Type check
         run: mypy
+      - name: Database migration
+        run: alembic upgrade head
       - name: Tests
         run: pytest

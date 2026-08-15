@@ -41,6 +41,15 @@ python scripts/check_mt5_market_data.py --symbol XAUUSD --timeframe M15 --limit 
 
 คำสั่งนี้อ่าน Symbol Specification และ OHLCV เท่านั้น ไม่มีการส่งหรือแก้ไข Order
 
+Market Data Storage ใช้ PostgreSQL schema `quantora`:
+
+```bash
+export QUANTORA_DATABASE_URL=postgresql+psycopg://quantora:change-me@localhost:5432/quantora
+alembic upgrade head
+```
+
+Storage เก็บ Raw Rates แบบ append-only/deduplicated และ Normalized Candles แบบ upsert พร้อม source และ payload checksum
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)

@@ -16,7 +16,7 @@
 - [x] รองรับการดึงและ normalize OHLCV ของหลาย symbols ผ่าน adapter
 - [ ] สร้าง Symbol Specification สำหรับ digits, pip/tick size, tick value, contract size, session และ spread
 - [x] ตรวจ data quality แบบ fail closed
-- [ ] จัดเก็บ raw/processed data
+- [x] จัดเก็บ Raw Rates และ Normalized Candles ลง PostgreSQL แบบ idempotent
 - [x] สร้าง Fake Gateway และ unit tests
 
 **Exit criteria:** นำเข้าข้อมูลหลาย symbols ซ้ำได้ ผลตรงกัน และตรวจจับ missing/duplicate candles แยกตาม symbol ได้
