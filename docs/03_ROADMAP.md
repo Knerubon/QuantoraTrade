@@ -87,15 +87,15 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-1. Trading Logic
-2. Database Design
-3. API Specification
-4. Risk Management
-5. Backtesting Framework
-6. Coding Standards
-7. Project Decisions
+1. Database Design
+2. API Specification
+3. Risk Management
+4. Backtesting Framework
+5. Coding Standards
+6. Project Decisions
 
 
 ## Documentation Progress
 
 - [x] AI Agents architecture and safety policy
+- [x] Multi-Asset Trading Logic
