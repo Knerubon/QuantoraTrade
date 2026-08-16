@@ -4,7 +4,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
