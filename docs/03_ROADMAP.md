@@ -65,13 +65,17 @@ walk-forward และ cost stress ใน Phase 4 ก่อนพิจารณ
 
 ## Phase 4 — AI Research
 
-- [ ] Feature pipeline
-- [ ] Dataset versioning
-- [ ] Baseline model
-- [ ] Walk-forward validation
-- [ ] Model registry และ inference interface
+- [x] Point-in-time feature pipeline พร้อม schema hash และ prefix-invariance tests
+- [x] Immutable dataset versioning พร้อม explicit label windows และ checksum
+- [x] Deterministic logistic baseline พร้อม calibration metrics
+- [x] Purged/embargoed walk-forward validation เทียบ no-skill prior
+- [x] Research-only model registry และ advisory inference interface
 
 **Exit criteria:** AI มีผลทดสอบเทียบ baseline และไม่เชื่อมกับ execution โดยตรง
+
+**สถานะ:** Phase 4 engineering implementation complete ใน development branch โดย golden
+walk-forward คงผลเป็น `RESEARCH_ONLY` เพราะ Brier score ยังไม่ชนะ no-skill prior การปิด
+empirical gate ต้องรัน approved historical XAUUSD/Forex dataset และ final untouched holdout
 
 ## Phase 5 — Risk & Decision
 
@@ -107,9 +111,8 @@ walk-forward และ cost stress ใน Phase 4 ก่อนพิจารณ
 
 ## เอกสารที่จะจัดทำต่อ
 
-Phase 0–3 implementation เสร็จตาม roadmap แล้ว ขั้นถัดไปคือ Phase 4 ซึ่งจะเพิ่ม feature
-pipeline, dataset versioning, baseline model, walk-forward validation และ model registry โดยยังไม่
-เชื่อม AI เข้ากับ execution โดยตรง
+Phase 0–4 engineering implementation เสร็จตาม roadmap แล้ว งานวิจัยถัดไปคือรัน Phase 4
+กับ approved historical market dataset และ cost stress โดยห้ามเริ่ม Paper/Live จาก golden fixture
 
 
 ## Documentation Progress
@@ -123,3 +126,4 @@ pipeline, dataset versioning, baseline model, walk-forward validation และ 
 - [x] Coding Standards and CI Quality Gates
 - [x] Project Decision Log
 - [x] Research Evidence Base และ pre-registered hypotheses
+- [x] Leakage-safe AI Research Framework และ advisory-only model boundary

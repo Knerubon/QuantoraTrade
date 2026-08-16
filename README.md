@@ -2,7 +2,7 @@
 
 แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ รองรับสินทรัพย์หลายประเภท โดยเริ่มทดสอบกับ **XAUUSD และตลาด Forex** และออกแบบให้ขยายตลาดได้โดยไม่ผูก logic กับสัญลักษณ์ใดสัญลักษณ์หนึ่ง
 
-> สถานะ: Phase 1–2 merge แล้ว และ Phase 3 — Backtesting implementation เสร็จแล้วใน PR #9
+> สถานะ: Phase 1–3 merge แล้ว และกำลังพัฒนา Phase 4 — AI Research
 
 ## เป้าหมาย
 
@@ -108,6 +108,17 @@ open position โดย Event Replay Journal บันทึก fills, exits, re
 ด้วย report hash ที่ล็อกไว้ ทั้งหมดนี้เป็นหลักฐานด้านความถูกต้องของ framework ไม่ใช่หลักฐานว่า
 กลยุทธ์ทำกำไรบนข้อมูลตลาดจริง
 
+## Phase 4 — AI Research (engineering implementation)
+
+Research package เพิ่ม point-in-time technical features, versioned labeled datasets,
+deterministic logistic baseline, purged walk-forward evaluation และ immutable model registry
+ที่ให้ผลได้เฉพาะ advisory prediction โดยไม่มี execution interface
+
+Golden XAUUSD/EURUSD fixture ล็อก dataset/result hashes และเปรียบเทียบ OOS Brier score กับ
+no-skill prior ผลปัจจุบันยังไม่ชนะด้าน calibration จึงคง `RESEARCH_ONLY` ตาม evidence gate
+ก่อนสรุปว่า model มี edge ต้องรัน approved historical market data พร้อม realistic cost stress และ
+final untouched holdout
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)
@@ -124,8 +135,10 @@ open position โดย Event Replay Journal บันทึก fills, exits, re
 12. [Project Decisions](docs/12_PROJECT_DECISIONS.md)
 13. [MT5 Terminal Validation Checklist](docs/13_MT5_TERMINAL_VALIDATION.md)
 14. [Research Evidence Base](docs/14_RESEARCH_EVIDENCE_BASE.md)
+15. [AI Research Framework](docs/15_AI_RESEARCH_FRAMEWORK.md)
 
-Phase 0–3 implementation ครบตาม roadmap แล้ว ขั้นถัดไปคือ Phase 4 — AI Research
+Phase 0–4 engineering implementation ครบตาม roadmap แล้ว แต่ Phase 4 empirical gate ยังรอ
+approved historical XAUUSD/Forex evaluation และไม่อนุญาต Paper/Live Trading
 
 ## สถานะสำคัญ
 
