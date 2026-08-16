@@ -21,6 +21,9 @@ class ExecutionCostModel:
     scenario: str = "base"
 
     def __post_init__(self) -> None:
+        values = (self.point, self.spread_points, self.slippage_points, self.commission_per_side)
+        if any(not value.is_finite() for value in values):
+            raise ValueError("execution cost values must be finite")
         if self.point <= 0:
             raise ValueError("point must be greater than zero")
         for field_name in ("spread_points", "slippage_points", "commission_per_side"):
@@ -51,12 +54,25 @@ class SimulatedFill:
             self.executed_at
         ):
             raise ValueError("executed_at must be timezone-aware UTC")
-        if self.side is Action.HOLD:
-            raise ValueError("fill side cannot be HOLD")
+        if self.symbol != self.symbol.strip().upper():
+            raise ValueError("fill symbol must be canonical uppercase")
+        if not isinstance(self.side, Action) or self.side is Action.HOLD:
+            raise ValueError("fill side must be BUY or SELL")
+        values = (
+            self.reference_price,
+            self.fill_price,
+            self.spread_price,
+            self.slippage_price,
+            self.commission,
+        )
+        if any(not value.is_finite() for value in values):
+            raise ValueError("fill prices and costs must be finite")
         if self.reference_price <= 0 or self.fill_price <= 0:
             raise ValueError("fill prices must be greater than zero")
         if min(self.spread_price, self.slippage_price, self.commission) < 0:
             raise ValueError("fill costs must be non-negative")
+        if not self.cost_scenario.strip():
+            raise ValueError("fill cost scenario must not be empty")
 
 
 def simulate_next_bar_market_fill(

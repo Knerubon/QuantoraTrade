@@ -65,6 +65,19 @@ reason codes แบบคงที่ และเวลา observed/expiry โ�
 Strategy configuration รองรับค่า global และ per-symbol override แบบ immutable พร้อม validation
 เพื่อให้การคำนวณย้อนหลังและหลายสินทรัพย์ใช้ config ที่ตรวจสอบได้
 
+## Phase 3 — Backtesting (กำลังพัฒนา)
+
+Simulation clock รวม closed candles หลาย symbol/timeframe ตาม UTC โดยให้ context timeframe
+เกิดก่อน entry timeframe เมื่อปิดพร้อมกัน และใช้ canonical symbol เป็นลำดับตัดสินที่ทำซ้ำได้
+
+Execution foundation เข้า market ได้เร็วสุดที่ราคาเปิดแท่งถัดไป พร้อม spread, slippage และ
+commission แบบ adverse-cost ส่วน Portfolio Accounting ติดตาม cash, realized/unrealized P&L,
+equity, open positions และ closed trades ด้วย tick specification ของแต่ละ symbol
+
+Protective exit simulator รองรับ SL/TP และ gap โดยเลือก stop-loss ก่อนเมื่อข้อมูล OHLC
+ไม่สามารถบอกลำดับการแตะ SL/TP ได้ ส่วน Backtest Engine เชื่อม pending signal เข้ากับ
+next-bar fill, protective exit และ portfolio mark โดยไม่เปลี่ยน state ย้อนหลัง
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)
