@@ -1,17 +1,18 @@
-strategies:
-  trend_pullback:
-    version: "1.0.0-draft"
-    enabled: true
-    entry_timeframe: M15
-    context_timeframe: H1
-    parameters:
-      ema_fast: 9
-      ema_medium: 21
-      ema_slow: 50
-      rsi_period: 14
-      atr_period: 14
-  breakout_confirmation:
-    version: "1.0.0-draft"
-    enabled: false
-    entry_timeframe: M15
-    context_timeframe: H1
+version: "technical-v1"
+global_parameters:
+  minimum_confidence: "0.60"
+  signal_ttl_bars: 1
+  rsi_bullish_threshold: "55"
+  rsi_bearish_threshold: "45"
+  support_resistance_tolerance: "0.001"
+symbol_overrides:
+  XAUUSD:
+    minimum_confidence: "0.72"
+    signal_ttl_bars: 2
+    support_resistance_tolerance: "0.0015"
+  EURUSD:
+    minimum_confidence: "0.65"
+  GBPUSD:
+    minimum_confidence: "0.67"
+  USDJPY:
+    minimum_confidence: "0.65"

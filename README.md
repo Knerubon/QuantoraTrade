@@ -2,7 +2,7 @@
 
 แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ รองรับสินทรัพย์หลายประเภท โดยเริ่มทดสอบกับ **XAUUSD และตลาด Forex** และออกแบบให้ขยายตลาดได้โดยไม่ผูก logic กับสัญลักษณ์ใดสัญลักษณ์หนึ่ง
 
-> สถานะ: Phase 1 — Market Data เสร็จแล้ว และกำลังพัฒนา Phase 2 — Technical Strategy
+> สถานะ: Phase 1 เสร็จแล้ว, Phase 2 implementation ครบตาม scope และกำลังเริ่ม Phase 3 — Backtesting
 
 ## เป้าหมาย
 
@@ -60,6 +60,11 @@ Indicator engine คำนวณ EMA 9/21/50, RSI 14, MACD 12/26/9 และ ATR
 
 Market structure engine ยืนยัน swing high/low หลังแท่งด้านขวาปิดครบก่อนสร้าง Support/Resistance zones และ pattern engine ตรวจ Doji, Hammer, Shooting Star และ Engulfing โดยไม่ใช้ข้อมูลอนาคต
 
+Signal schema ระบุ `symbol`, `timeframe`, `BUY/SELL/HOLD`, confidence, strategy version,
+reason codes แบบคงที่ และเวลา observed/expiry โดยสร้าง identity ซ้ำได้จาก input เดิม
+Strategy configuration รองรับค่า global และ per-symbol override แบบ immutable พร้อม validation
+เพื่อให้การคำนวณย้อนหลังและหลายสินทรัพย์ใช้ config ที่ตรวจสอบได้
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)
@@ -75,8 +80,9 @@ Market structure engine ยืนยัน swing high/low หลังแท่�
 11. [Coding Standards](docs/11_CODING_STANDARDS.md)
 12. [Project Decisions](docs/12_PROJECT_DECISIONS.md)
 13. [MT5 Terminal Validation Checklist](docs/13_MT5_TERMINAL_VALIDATION.md)
+14. [Research Evidence Base](docs/14_RESEARCH_EVIDENCE_BASE.md)
 
-Phase 0 Foundation และ Phase 1 Market Data เสร็จแล้ว ขั้นถัดไปคือ Phase 2 Technical Strategy
+Phase 0–2 implementation ครบตาม scope แล้ว ขั้นถัดไปคือ Phase 3 Backtesting
 
 ## สถานะสำคัญ
 

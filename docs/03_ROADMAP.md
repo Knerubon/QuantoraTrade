@@ -31,11 +31,13 @@
 - [x] RSI, MACD และ ATR
 - [x] Support/Resistance
 - [x] Candlestick Pattern
-- [ ] Signal schema: symbol + timeframe + BUY/SELL/HOLD
-- [ ] Strategy configuration แบบ global และ per-symbol override
-- [ ] Unit tests
+- [x] Signal schema: symbol + timeframe + BUY/SELL/HOLD, confidence, reason codes และ expiry
+- [x] Strategy configuration แบบ global และ per-symbol override
+- [x] Unit tests สำหรับ schema, validation, determinism และ anti-look-ahead
 
 **Exit criteria:** ไม่มี look-ahead bias และ signal ของแต่ละ symbol ทำซ้ำได้จากข้อมูล/config เดิม
+
+**สถานะ:** Phase 2 implementation complete บน development branch; รอ publication และ review ก่อน merge
 
 ## Phase 3 — Backtesting
 
@@ -91,7 +93,8 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-Phase 0 และ Phase 1 เสร็จแล้ว ขั้นถัดไปคือ Phase 2 — Technical Strategy
+Phase 0 และ Phase 1 เสร็จแล้ว Phase 2 implementation ครบตาม scope ขั้นถัดไปคือ
+Phase 3 — Backtesting โดยเริ่มจาก simulation clock, next-bar execution และ cost model
 
 
 ## Documentation Progress
@@ -104,3 +107,4 @@ Phase 0 และ Phase 1 เสร็จแล้ว ขั้นถัดไ�
 - [x] Reproducible Backtesting Framework
 - [x] Coding Standards and CI Quality Gates
 - [x] Project Decision Log
+- [x] Research Evidence Base และ pre-registered hypotheses
