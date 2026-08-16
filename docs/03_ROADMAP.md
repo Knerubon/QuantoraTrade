@@ -49,7 +49,7 @@
 - [x] Event orchestration สำหรับ pending signal → fill → exit → portfolio mark
 - [x] Core metrics และ deterministic trade journal
 - [x] Train/validation/out-of-sample split พร้อม purge/embargo
-- [ ] Baseline report
+- [x] Machine-readable baseline report และ reproducibility artifacts
 
 **Exit criteria:** รายงานผลครบ ตรวจย้อนหลังได้ และมี out-of-sample result
 
@@ -98,7 +98,8 @@
 ## เอกสารที่จะจัดทำต่อ
 
 Phase 0–2 เสร็จแล้ว Phase 3 มี simulation, execution, portfolio, trade journal, core metrics
-และ chronological dataset split แล้ว ขั้นถัดไปคือ baseline report และส่วนจำลองที่ยังเหลือ
+และ chronological dataset split รวมถึง machine-readable baseline report แล้ว ขั้นถัดไปคือ
+margin, swap, partial fill, report renderer และ complete experiment runner
 
 
 ## Documentation Progress

@@ -61,7 +61,11 @@ MVP ใช้ **event-driven bar simulation**:
 - Gross P&L ใช้ reference prices ส่วน execution cost แยกผลของ spread/slippage ออกจาก commission
 - Core metrics ครอบคลุม net return, expectancy, trade quality, streak และ high-water-mark drawdown
 - Chronological split ตัด label overlap ด้วย purge และเว้นข้อมูลหลัง boundary ด้วย embargo
-- Margin, swap, partial fill, baseline report และ complete experiment orchestration ยังอยู่ในงานถัดไป
+- Experiment config และ manifest ผูก code commit, dataset checksum, versions, cost scenario,
+  random seed และ split membership เข้ากับ deterministic run ID
+- Baseline report แยก overall, Training/Validation/Test และ per-symbol เทียบ no-trade baseline
+- Artifact bundle สร้าง `summary.json`, `manifest.json`, `trades.json` และ `checksums.json`
+- Margin, swap, partial fill, HTML/Parquet renderer และ complete experiment runner ยังอยู่ในงานถัดไป
 
 ## 5. Data Requirements
 
@@ -373,6 +377,11 @@ Required fields ที่เป็น `null` ต้องทำให้ Run fai
 
 Official result ต้องสร้างใหม่ได้จาก Manifest
 
+Implementation ปัจจุบันสร้าง run ID จาก SHA-256 ของ canonical config และ split membership
+ดังนั้น config หรือ sample membership เปลี่ยนเพียงรายการเดียวจะกลายเป็นคนละ run โดยอัตโนมัติ
+official experiment ปฏิเสธ dirty worktree และ report ระดับ baseline บังคับสถานะ
+`RESEARCH_ONLY` ไม่ให้ใช้เป็นสิทธิ์เปิด Paper/Live Trading
+
 ## 23. Core Performance Metrics
 
 ### Return
@@ -587,6 +596,9 @@ Monte Carlo ไม่แก้ข้อเสียของ sample ขนาด
 - `manifest.json`
 - `config.snapshot.yaml`
 - charts directory
+
+MVP ปัจจุบันสร้าง JSON artifact bundle ในหน่วยความจำพร้อม checksum ก่อน ส่วน Parquet,
+HTML/PDF และ Artifact Store persistence จะเพิ่มภายหลังโดยต้องรักษา canonical report schema เดิม
 
 PostgreSQL เก็บ metadata/summary และ Artifact Store เก็บไฟล์ พร้อม SHA-256 checksum
 

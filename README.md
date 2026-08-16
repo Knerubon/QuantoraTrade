@@ -86,6 +86,12 @@ streak และ high-water-mark drawdown ด้วย `Decimal`
 Dataset splitter แบ่ง Training/Validation/Test ตามลำดับเวลาเท่านั้น และรองรับ purge/embargo
 จากช่วง label เพื่อป้องกันข้อมูลอนาคตรั่วข้าม partition
 
+Experiment configuration ล็อก code commit, dataset checksum, strategy/risk/engine versions,
+symbols, timeframe, period, cost scenario และ random seed เพื่อสร้าง reproducibility manifest
+กับ run ID แบบ deterministic ส่วน Baseline Report สรุป overall, แต่ละ partition และแต่ละ symbol
+เทียบ no-trade baseline พร้อม JSON artifacts และ SHA-256 checksums โดยสถานะเป็น
+`RESEARCH_ONLY` เสมอ
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)
