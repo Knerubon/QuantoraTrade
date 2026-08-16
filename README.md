@@ -65,6 +65,15 @@ reason codes แบบคงที่ และเวลา observed/expiry โ�
 Strategy configuration รองรับค่า global และ per-symbol override แบบ immutable พร้อม validation
 เพื่อให้การคำนวณย้อนหลังและหลายสินทรัพย์ใช้ config ที่ตรวจสอบได้
 
+## Phase 3 — Backtesting (กำลังพัฒนา)
+
+Simulation clock รวม closed candles หลาย symbol/timeframe ตาม UTC โดยให้ context timeframe
+เกิดก่อน entry timeframe เมื่อปิดพร้อมกัน และใช้ canonical symbol เป็นลำดับตัดสินที่ทำซ้ำได้
+
+Execution foundation เข้า market ได้เร็วสุดที่ราคาเปิดแท่งถัดไป พร้อม spread, slippage และ
+commission แบบ adverse-cost ส่วน Portfolio Accounting ติดตาม cash, realized/unrealized P&L,
+equity, open positions และ closed trades ด้วย tick specification ของแต่ละ symbol
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)

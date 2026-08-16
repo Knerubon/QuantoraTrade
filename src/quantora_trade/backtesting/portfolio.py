@@ -1,0 +1,232 @@
+"""Immutable multi-symbol position and portfolio accounting for backtests."""
+
+import json
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime
+from decimal import Decimal
+from uuid import NAMESPACE_URL, UUID, uuid5
+
+from quantora_trade.backtesting.execution import SimulatedFill
+from quantora_trade.domain.enums import Action
+from quantora_trade.domain.models import Instrument
+
+
+def _require_utc(value: datetime, field_name: str) -> None:
+    if value.tzinfo is None or value.utcoffset() != UTC.utcoffset(value):
+        raise ValueError(f"{field_name} must be timezone-aware UTC")
+
+
+@dataclass(frozen=True, slots=True)
+class OpenPosition:
+    """One marked position with the broker tick economics fixed at entry."""
+
+    id: UUID
+    opening_fill_id: UUID
+    symbol: str
+    side: Action
+    volume: Decimal
+    entry_price: Decimal
+    opened_at: datetime
+    tick_size: Decimal
+    tick_value: Decimal
+    entry_commission: Decimal
+    mark_price: Decimal
+    marked_at: datetime
+
+    def __post_init__(self) -> None:
+        if self.symbol != self.symbol.strip().upper():
+            raise ValueError("position symbol must be canonical uppercase")
+        if not isinstance(self.side, Action) or self.side is Action.HOLD:
+            raise ValueError("position side must be BUY or SELL")
+        _require_utc(self.opened_at, "opened_at")
+        _require_utc(self.marked_at, "marked_at")
+        if self.marked_at < self.opened_at:
+            raise ValueError("position mark cannot precede entry")
+        economics = (
+            self.volume,
+            self.entry_price,
+            self.tick_size,
+            self.tick_value,
+            self.entry_commission,
+            self.mark_price,
+        )
+        if any(not value.is_finite() for value in economics):
+            raise ValueError("position economics must be finite")
+        if (
+            min(self.volume, self.entry_price, self.tick_size, self.tick_value, self.mark_price)
+            <= 0
+        ):
+            raise ValueError("position economics must be greater than zero")
+        if self.entry_commission < 0:
+            raise ValueError("entry commission must be non-negative")
+
+    @property
+    def unrealized_pnl(self) -> Decimal:
+        direction = Decimal("1") if self.side is Action.BUY else Decimal("-1")
+        ticks = ((self.mark_price - self.entry_price) / self.tick_size) * direction
+        return ticks * self.tick_value * self.volume
+
+
+@dataclass(frozen=True, slots=True)
+class ClosedTrade:
+    """Auditable realized result including both sides of commission."""
+
+    position_id: UUID
+    closing_fill_id: UUID
+    symbol: str
+    side: Action
+    volume: Decimal
+    entry_price: Decimal
+    exit_price: Decimal
+    opened_at: datetime
+    closed_at: datetime
+    gross_pnl: Decimal
+    net_pnl: Decimal
+
+    def __post_init__(self) -> None:
+        if self.symbol != self.symbol.strip().upper():
+            raise ValueError("closed trade symbol must be canonical uppercase")
+        if not isinstance(self.side, Action) or self.side is Action.HOLD:
+            raise ValueError("closed trade side must be BUY or SELL")
+        _require_utc(self.opened_at, "opened_at")
+        _require_utc(self.closed_at, "closed_at")
+        if self.closed_at < self.opened_at:
+            raise ValueError("closed trade cannot end before it opens")
+        values = (self.volume, self.entry_price, self.exit_price, self.gross_pnl, self.net_pnl)
+        if any(not value.is_finite() for value in values):
+            raise ValueError("closed trade values must be finite")
+        if self.volume <= 0 or self.entry_price <= 0 or self.exit_price <= 0:
+            raise ValueError("closed trade volume and prices must be greater than zero")
+
+
+@dataclass(frozen=True, slots=True)
+class PortfolioState:
+    """Persistent balance, equity, and position state across multiple symbols."""
+
+    cash_balance: Decimal
+    realized_pnl: Decimal = Decimal("0")
+    positions: tuple[OpenPosition, ...] = ()
+    closed_trades: tuple[ClosedTrade, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.cash_balance.is_finite() or self.cash_balance < 0:
+            raise ValueError("cash balance must be a finite non-negative value")
+        if not self.realized_pnl.is_finite():
+            raise ValueError("realized PnL must be finite")
+        position_ids = tuple(position.id for position in self.positions)
+        if len(position_ids) != len(set(position_ids)):
+            raise ValueError("portfolio contains duplicate position IDs")
+
+    @property
+    def unrealized_pnl(self) -> Decimal:
+        return sum((position.unrealized_pnl for position in self.positions), Decimal("0"))
+
+    @property
+    def equity(self) -> Decimal:
+        return self.cash_balance + self.unrealized_pnl
+
+    def open_position(
+        self,
+        *,
+        fill: SimulatedFill,
+        volume: Decimal,
+        instrument: Instrument,
+    ) -> "PortfolioState":
+        """Open a position after validating symbol and broker volume constraints."""
+
+        if fill.symbol != instrument.symbol:
+            raise ValueError("fill and instrument symbols must match")
+        if not volume.is_finite():
+            raise ValueError("position volume must be finite")
+        if not instrument.volume_min <= volume <= instrument.volume_max:
+            raise ValueError("position volume is outside instrument limits")
+        if (volume - instrument.volume_min) % instrument.volume_step != 0:
+            raise ValueError("position volume is not aligned to instrument step")
+        if fill.commission > self.cash_balance:
+            raise ValueError("insufficient cash for entry commission")
+        identity = json.dumps(
+            {"fill_id": str(fill.id), "symbol": fill.symbol, "volume": str(volume)},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        position = OpenPosition(
+            id=uuid5(NAMESPACE_URL, identity),
+            opening_fill_id=fill.id,
+            symbol=fill.symbol,
+            side=fill.side,
+            volume=volume,
+            entry_price=fill.fill_price,
+            opened_at=fill.executed_at,
+            tick_size=instrument.tick_size,
+            tick_value=instrument.tick_value,
+            entry_commission=fill.commission,
+            mark_price=fill.fill_price,
+            marked_at=fill.executed_at,
+        )
+        if any(existing.id == position.id for existing in self.positions):
+            raise ValueError("opening fill has already created a position")
+        return PortfolioState(
+            cash_balance=self.cash_balance - fill.commission,
+            realized_pnl=self.realized_pnl - fill.commission,
+            positions=(*self.positions, position),
+            closed_trades=self.closed_trades,
+        )
+
+    def mark_to_market(
+        self, *, symbol: str, price: Decimal, observed_at: datetime
+    ) -> "PortfolioState":
+        """Mark every open position for one symbol without affecting other symbols."""
+
+        _require_utc(observed_at, "observed_at")
+        if price <= 0:
+            raise ValueError("mark price must be greater than zero")
+        if not any(position.symbol == symbol for position in self.positions):
+            raise ValueError("portfolio has no open position for symbol")
+        updated: list[OpenPosition] = []
+        for position in self.positions:
+            if position.symbol != symbol:
+                updated.append(position)
+                continue
+            if observed_at < position.marked_at:
+                raise ValueError("portfolio mark cannot move backward in time")
+            updated.append(replace(position, mark_price=price, marked_at=observed_at))
+        return replace(self, positions=tuple(updated))
+
+    def close_position(self, *, position_id: UUID, fill: SimulatedFill) -> "PortfolioState":
+        """Close exactly one position and realize tick-value PnL plus exit commission."""
+
+        matches = [position for position in self.positions if position.id == position_id]
+        if not matches:
+            raise ValueError("position does not exist")
+        position = matches[0]
+        if fill.symbol != position.symbol:
+            raise ValueError("closing fill symbol does not match position")
+        expected_side = Action.SELL if position.side is Action.BUY else Action.BUY
+        if fill.side is not expected_side:
+            raise ValueError("closing fill must oppose the position side")
+        if fill.executed_at < position.opened_at:
+            raise ValueError("closing fill cannot precede position entry")
+        direction = Decimal("1") if position.side is Action.BUY else Decimal("-1")
+        ticks = ((fill.fill_price - position.entry_price) / position.tick_size) * direction
+        gross_pnl = ticks * position.tick_value * position.volume
+        net_pnl = gross_pnl - position.entry_commission - fill.commission
+        trade = ClosedTrade(
+            position_id=position.id,
+            closing_fill_id=fill.id,
+            symbol=position.symbol,
+            side=position.side,
+            volume=position.volume,
+            entry_price=position.entry_price,
+            exit_price=fill.fill_price,
+            opened_at=position.opened_at,
+            closed_at=fill.executed_at,
+            gross_pnl=gross_pnl,
+            net_pnl=net_pnl,
+        )
+        remaining = tuple(item for item in self.positions if item.id != position_id)
+        return PortfolioState(
+            cash_balance=self.cash_balance + gross_pnl - fill.commission,
+            realized_pnl=self.realized_pnl + gross_pnl - fill.commission,
+            positions=remaining,
+            closed_trades=(*self.closed_trades, trade),
+        )

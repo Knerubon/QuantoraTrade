@@ -42,7 +42,10 @@
 ## Phase 3 — Backtesting
 
 - [ ] Backtest engine
-- [ ] Spread, commission และ slippage
+- [x] Simulation clock และ deterministic multi-symbol candle ordering
+- [x] Next-bar market fill พร้อม spread, commission และ slippage foundation
+- [x] Immutable position lifecycle และ multi-symbol portfolio accounting
+- [ ] Intrabar SL/TP และ ambiguity policy implementation
 - [ ] Metrics และ trade journal
 - [ ] Train/validation/out-of-sample split
 - [ ] Baseline report

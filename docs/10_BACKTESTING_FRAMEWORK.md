@@ -49,6 +49,14 @@ MVP ใช้ **event-driven bar simulation**:
 
 ห้ามอ่าน high/low/close ของแท่งเดียวกันก่อนเวลาที่ logic กำหนด
 
+### Implementation status
+
+- Simulation clock เรียง event ด้วย `close_time → context timeframe → symbol → timeframe`
+- Candle ที่ยังไม่ปิด, timeframe/duration ไม่ตรง หรือ identity ซ้ำทำให้ run หยุดทันที
+- Market fill ใช้ราคาเปิดแท่งถัดไปและ adverse spread/slippage
+- Portfolio state เป็น immutable snapshot และคำนวณ P&L ด้วย tick size/value ของ symbol
+- Intrabar order lifecycle, margin, swap, metrics และ complete engine orchestration ยังอยู่ในงานถัดไป
+
 ## 5. Data Requirements
 
 Dataset ต้องมี:
