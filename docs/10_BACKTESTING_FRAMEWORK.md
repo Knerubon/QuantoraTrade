@@ -57,7 +57,27 @@ MVP ใช้ **event-driven bar simulation**:
 - Portfolio state เป็น immutable snapshot และคำนวณ P&L ด้วย tick size/value ของ symbol
 - Intrabar SL/TP ใช้ stop-first เมื่อแท่งเดียวแตะทั้งสองระดับ และใช้ราคาเปิดเมื่อ stop ถูก gap
 - Engine เดิน pending signal → next-bar fill → protective exit → portfolio mark แบบ immutable
-- Margin, swap, partial fill, metrics และ complete experiment orchestration ยังอยู่ในงานถัดไป
+- Trade Journal ย้อนกลับจาก closed trade ถึง signal, opening fill และ closing fill ได้
+- Gross P&L ใช้ reference prices ส่วน execution cost แยกผลของ spread/slippage ออกจาก commission
+- Core metrics ครอบคลุม net return, expectancy, trade quality, streak และ high-water-mark drawdown
+- Chronological split ตัด label overlap ด้วย purge และเว้นข้อมูลหลัง boundary ด้วย embargo
+- Experiment config และ manifest ผูก code commit, dataset checksum, versions, cost scenario,
+  random seed และ split membership เข้ากับ deterministic run ID
+- Baseline report แยก overall, Training/Validation/Test และ per-symbol เทียบ no-trade baseline
+- Artifact bundle สร้าง `summary.json`, `manifest.json`, `trades.json`, `events.json`,
+  `report.html` และ `checksums.json`
+- Broker fill decision ปัด volume ลงตาม min/max/step และบันทึก FULL/PARTIAL/REJECTED
+  พร้อมเหตุผลจาก liquidity limit, margin limit และ volume constraints
+- Commission ต่อ lot คูณด้วย filled volume จริงทั้ง entry และ exit รวมทั้งใช้ใน affordability check
+- Portfolio จอง margin จาก broker-provided margin-per-lot และคำนวณ free margin ทุก snapshot
+- Swap model คิดต้นทุนเฉพาะ weekday พร้อม configurable triple-swap weekday และบันทึกใน trade
+- Complete experiment runner ตรวจ sample/partition/source candle แบบ fail closed และไม่ preload
+  future signal ก่อน source candle ถูกสังเกต
+- Event replay journal บันทึก submission, fill decision, protective exit และ portfolio snapshot
+  ของทุก candle event
+- Artifact persistence เขียนผ่าน deterministic staging directory ตรวจ SHA-256 แล้ว publish
+  directory แบบ atomic โดยไม่ overwrite ผลเดิม
+- Golden multi-symbol test ครอบคลุม Training/Validation/Test และล็อก expected report hash
 
 ## 5. Data Requirements
 
@@ -151,6 +171,10 @@ Transform ที่เรียนรู้ค่า ต้อง fit บน Tra
 
 วันที่และสัดส่วนจริงเป็น config ต่อ experiment และต้องแสดงใน report
 
+Implementation ต้อง fail closed เมื่อ partition ว่าง, timestamp ไม่ใช่ UTC, sample ซ้ำ/ไม่เรียง,
+label ข้าม purge boundary หรือ sample อยู่ใน embargo window โดย sample ที่ถูกตัดต้องบันทึกใน
+`excluded` เพื่อ audit ได้ ห้ามลบทิ้งแบบเงียบ
+
 ## 10. Walk-Forward Analysis
 
 ```mermaid
@@ -196,6 +220,10 @@ Execution Simulator ต้องรองรับ:
 
 MVP อาจใช้ full fill สำหรับ liquid instruments แต่ต้องระบุ assumption และมี stress variant สำหรับ partial fill/rejection
 
+Implementation ปัจจุบันใช้ deterministic liquidity cap ต่อ symbol, ปัด volume ลงตาม broker
+`volume_min`, `volume_max`, `volume_step` และตัดสินจาก free margin หลัง commission หากเติมได้บางส่วน
+ต้องบันทึก remaining volume และ reason codes; market-order remainder ถูกยกเลิก ไม่ carry ข้ามแท่ง
+
 ## 13. Spread Model
 
 ลำดับความน่าเชื่อถือ:
@@ -225,7 +253,14 @@ Cost Model แยกตาม broker/account/symbol:
 - conversion เป็น account currency
 - fees อื่นที่เกี่ยวข้อง
 
+ค่า `commission_per_side` ใน implementation หมายถึง commission ต่อ lot ต่อ side และต้องคูณ
+ด้วย filled volume หาก order ถูก partial fill ห้ามคิด commission ของ requested volume ที่ไม่ได้ fill
+
 ถ้าข้อมูล swap ย้อนหลังไม่พร้อม ต้องระบุ omission และทำ sensitivity test
+
+Swap implementation รับ daily long/short cost ต่อ lot ใน account currency และ triple-swap weekday
+จาก broker profile โดยตรง ค่าปริยายเป็นศูนย์เพื่อไม่สร้างข้อมูลสมมติแบบเงียบ และ official report
+ต้องระบุ limitation หากไม่มีประวัติ swap ที่ตรงช่วงเวลา
 
 ## 15. Slippage Model
 
@@ -265,6 +300,11 @@ Portfolio Engine ต้องติดตาม:
 - daily high-water mark
 - drawdown
 - Kill Switch/cooldown state
+
+Margin implementation ใช้ `margin_per_lot` จาก broker specification ต่อ symbol แทนการใช้สูตร
+notional/leverage เดียวกับทุกสินทรัพย์ เพื่อไม่คำนวณ conversion ของ XAUUSD, EURUSD และ USDJPY
+ผิดพลาด หาก specification ไม่มี margin ที่แปลงเป็น account currency แล้ว ต้องไม่เดาค่าเพื่อใช้เป็น
+official result
 
 เมื่อ Signals เกิดพร้อมกัน ต้องใช้ deterministic priority policy เช่น event time, strategy priority และ canonical symbol เพื่อให้ผลทำซ้ำได้
 
@@ -365,6 +405,14 @@ Required fields ที่เป็น `null` ต้องทำให้ Run fai
 
 Official result ต้องสร้างใหม่ได้จาก Manifest
 
+Implementation ปัจจุบันสร้าง run ID จาก SHA-256 ของ canonical config และ split membership
+ดังนั้น config หรือ sample membership เปลี่ยนเพียงรายการเดียวจะกลายเป็นคนละ run โดยอัตโนมัติ
+official experiment ปฏิเสธ dirty worktree และ report ระดับ baseline บังคับสถานะ
+`RESEARCH_ONLY` ไม่ให้ใช้เป็นสิทธิ์เปิด Paper/Live Trading
+
+Manifest ต้องมี `broker_profile_version` เพื่อผูก margin, liquidity, swap และ commission assumptions
+กับผลรายงาน หากเปลี่ยน broker profile ต้องได้ config hash และ run ID ใหม่
+
 ## 23. Core Performance Metrics
 
 ### Return
@@ -406,7 +454,7 @@ Official result ต้องสร้างใหม่ได้จาก Manife
 ## 24. Cost and Execution Metrics
 
 - gross vs net P&L
-- spread cost
+- execution cost จาก spread/slippage เทียบ reference prices
 - commission
 - swap/fees
 - slippage
@@ -580,6 +628,10 @@ Monte Carlo ไม่แก้ข้อเสียของ sample ขนาด
 - `config.snapshot.yaml`
 - charts directory
 
+Phase 3 สร้าง canonical JSON bundle, deterministic HTML report และ checksum index พร้อมเขียน
+ลง local Artifact Store แบบ atomic แล้ว ส่วน Parquet/PDF, remote object storage และ charts เป็น
+รูปแบบเสริมในระยะถัดไปและต้องรักษา canonical report schema เดิม
+
 PostgreSQL เก็บ metadata/summary และ Artifact Store เก็บไฟล์ พร้อม SHA-256 checksum
 
 ## 34. Test Pyramid
@@ -679,14 +731,19 @@ MVP ต้องให้ความถูกต้องมากกว่า�
 
 ## 39. Definition of Done
 
-Backtesting Framework พร้อมใช้งานเมื่อ:
+Phase 3 engineering พร้อมสำหรับใช้สร้างงานวิจัยย้อนหลังเมื่อ:
 
-- multi-symbol event ordering deterministic
-- closed-bar และ multi-timeframe alignment ผ่าน tests
-- Strategy/Decision/Risk ใช้ code เดียวกับ Paper
-- costs และ intrabar ambiguity ไม่ถูกละเลย
-- official run สร้าง Reproducibility Manifest
-- report แยก in-sample/out-of-sample และ per-symbol
-- walk-forward และ robustness tests ทำงาน
-- trade ทุกตัว replay ถึง source candles ได้
-- Backtest promotion เปิดได้เฉพาะ Paper Mode
+- [x] multi-symbol event ordering deterministic
+- [x] closed-bar และ multi-timeframe alignment ผ่าน tests
+- [x] costs และ intrabar ambiguity ไม่ถูกละเลย
+- [x] official run สร้าง Reproducibility Manifest
+- [x] report แยก in-sample/out-of-sample และ per-symbol
+- [x] trade ทุกตัวผูก opening signal กลับถึง source sample/candle ได้
+- [x] event replay และ artifact checksums ตรวจสอบย้อนหลังได้
+- [x] golden test ทำซ้ำแล้วได้ events, trades, metrics และ report hash เดิม
+- [x] promotion decision ถูกล็อกเป็น `RESEARCH_ONLY`
+
+การผ่านรายการนี้หมายถึง framework implementation เสร็จ ไม่ได้หมายถึง strategy ได้รับอนุมัติ
+สำหรับ Paper/Live การวิจัย Phase 4 ยังต้องใช้ approved historical dataset, rolling walk-forward,
+parameter stability และ base/adverse/stress cost scenarios ส่วน Risk Engine และ Paper promotion
+gate จะเสร็จใน Phase 5–6 ตาม roadmap

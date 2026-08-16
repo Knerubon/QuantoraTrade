@@ -12,7 +12,7 @@ from quantora_trade.domain.models import Candle, Signal
 
 @dataclass(frozen=True, slots=True)
 class ExecutionCostModel:
-    """Explicit per-symbol cost assumptions for one execution scenario."""
+    """Explicit per-symbol price costs and per-lot commission assumptions."""
 
     point: Decimal
     spread_points: Decimal
@@ -80,11 +80,14 @@ def simulate_next_bar_market_fill(
     signal: Signal,
     next_bar: Candle,
     costs: ExecutionCostModel,
+    volume: Decimal = Decimal("1"),
 ) -> SimulatedFill:
     """Fill a non-HOLD signal at the next bar open with adverse spread and slippage."""
 
     if signal.action is Action.HOLD:
         raise ValueError("HOLD signal cannot be executed")
+    if not volume.is_finite() or volume <= 0:
+        raise ValueError("fill volume must be finite and greater than zero")
     if not next_bar.is_closed:
         raise ValueError("historical execution requires a closed next bar")
     if (next_bar.symbol, next_bar.timeframe) != (signal.symbol, signal.timeframe):
@@ -105,6 +108,7 @@ def simulate_next_bar_market_fill(
             "executed_at": next_bar.open_time.isoformat(),
             "fill_price": str(fill_price),
             "signal_id": str(signal.id),
+            "volume": str(volume),
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -119,6 +123,6 @@ def simulate_next_bar_market_fill(
         fill_price=fill_price,
         spread_price=spread_price,
         slippage_price=slippage_price,
-        commission=costs.commission_per_side,
+        commission=costs.commission_per_side * volume,
         cost_scenario=costs.scenario,
     )

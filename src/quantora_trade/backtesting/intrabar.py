@@ -70,7 +70,7 @@ def _closing_fill(
         fill_price=fill_price,
         spread_price=spread_price,
         slippage_price=slippage_price,
-        commission=costs.commission_per_side,
+        commission=costs.commission_per_side * position.volume,
         cost_scenario=costs.scenario,
     )
 

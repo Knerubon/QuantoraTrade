@@ -37,21 +37,31 @@
 
 **Exit criteria:** ไม่มี look-ahead bias และ signal ของแต่ละ symbol ทำซ้ำได้จากข้อมูล/config เดิม
 
-**สถานะ:** Phase 2 implementation complete บน development branch; รอ publication และ review ก่อน merge
+**สถานะ:** Phase 2 implementation complete และ merge เข้า `main` แล้ว
 
 ## Phase 3 — Backtesting
 
-- [ ] Backtest engine
+- [x] Backtest engine
 - [x] Simulation clock และ deterministic multi-symbol candle ordering
 - [x] Next-bar market fill พร้อม spread, commission และ slippage foundation
 - [x] Immutable position lifecycle และ multi-symbol portfolio accounting
 - [x] Intrabar SL/TP และ conservative ambiguity policy
 - [x] Event orchestration สำหรับ pending signal → fill → exit → portfolio mark
-- [ ] Metrics และ trade journal
-- [ ] Train/validation/out-of-sample split
-- [ ] Baseline report
+- [x] Broker volume rounding, rejected/partial fills และ liquidity cap
+- [x] Margin used/free margin จาก broker-provided margin-per-lot แยก symbol
+- [x] Weekday swap financing และ configurable triple-swap day
+- [x] Core metrics และ deterministic trade journal
+- [x] Train/validation/out-of-sample split พร้อม purge/embargo
+- [x] Machine-readable baseline report และ reproducibility artifacts
+- [x] Complete experiment runner และ event replay journal
+- [x] Deterministic HTML report และ atomic artifact persistence พร้อม checksum verification
+- [x] Multi-symbol golden regression ครบ Training/Validation/Test พร้อม locked report hash
 
 **Exit criteria:** รายงานผลครบ ตรวจย้อนหลังได้ และมี out-of-sample result
+
+**สถานะ:** Phase 3 engineering implementation complete ใน PR #9 โดยผล golden OOS ยืนยัน
+pipeline/determinism เท่านั้น การยืนยัน edge ของกลยุทธ์ยังต้องใช้ approved historical dataset,
+walk-forward และ cost stress ใน Phase 4 ก่อนพิจารณา Paper Trade
 
 ## Phase 4 — AI Research
 
@@ -97,8 +107,9 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-Phase 0 และ Phase 1 เสร็จแล้ว Phase 2 implementation ครบตาม scope ขั้นถัดไปคือ
-Phase 3 — Backtesting โดยเริ่มจาก simulation clock, next-bar execution และ cost model
+Phase 0–3 implementation เสร็จตาม roadmap แล้ว ขั้นถัดไปคือ Phase 4 ซึ่งจะเพิ่ม feature
+pipeline, dataset versioning, baseline model, walk-forward validation และ model registry โดยยังไม่
+เชื่อม AI เข้ากับ execution โดยตรง
 
 
 ## Documentation Progress

@@ -85,6 +85,20 @@ def test_fill_is_deterministic_for_same_inputs() -> None:
     assert first.id == second.id
 
 
+def test_partial_fill_scales_commission_and_changes_fill_identity() -> None:
+    next_bar = candle(open_time=OPEN_TIME + timedelta(minutes=15))
+
+    full = simulate_next_bar_market_fill(
+        signal=signal(), next_bar=next_bar, costs=costs(), volume=Decimal("1")
+    )
+    partial = simulate_next_bar_market_fill(
+        signal=signal(), next_bar=next_bar, costs=costs(), volume=Decimal("0.5")
+    )
+
+    assert partial.commission == Decimal("1.750")
+    assert partial.id != full.id
+
+
 def test_execution_rejects_look_ahead_identity_and_hold() -> None:
     before_observation = candle(open_time=OPEN_TIME)
     wrong_symbol = candle(open_time=OPEN_TIME + timedelta(minutes=15), symbol="XAUUSD")

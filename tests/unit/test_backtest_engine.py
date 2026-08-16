@@ -3,6 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+from quantora_trade.backtesting.broker import BrokerSimulationModel, FillReason, FillStatus
 from quantora_trade.backtesting.engine import BacktestEngine, PendingOrder
 from quantora_trade.backtesting.execution import ExecutionCostModel
 from quantora_trade.domain.enums import Action, AssetClass, SignalReasonCode
@@ -57,12 +58,15 @@ def costs() -> ExecutionCostModel:
     )
 
 
-def engine(candles: tuple[Candle, ...]) -> BacktestEngine:
+def engine(
+    candles: tuple[Candle, ...], broker: BrokerSimulationModel | None = None
+) -> BacktestEngine:
     return BacktestEngine.create(
         candles=candles,
         instruments=(instrument(),),
         cost_models=(("XAUUSD", costs()),),
         initial_cash=Decimal("1000"),
+        broker_models=() if broker is None else (("XAUUSD", broker),),
     )
 
 
@@ -132,3 +136,43 @@ def test_engine_expires_signal_when_first_eligible_bar_is_too_late() -> None:
     assert result.expired_signal_ids == (signal(source).id,)
     assert result.portfolio.cash_balance == Decimal("1000")
     assert completed.pending_orders == ()
+
+
+def test_engine_books_partial_fill_and_rejects_unaffordable_order() -> None:
+    source = candle(0, open_="99", high="100", low="98", close="99.5")
+    entry_bar = candle(1, open_="100", high="100.5", low="99.5", close="100")
+    partial_engine = engine(
+        (source, entry_bar),
+        BrokerSimulationModel(margin_per_lot=Decimal("100"), liquidity_cap=Decimal("0.50")),
+    ).submit(
+        PendingOrder(
+            signal=signal(source),
+            volume=Decimal("1"),
+            stop_loss=Decimal("99"),
+        )
+    )
+
+    _, after_source = partial_engine.step()
+    partial, _ = after_source.step()
+
+    assert partial.fill_decisions[0].status is FillStatus.PARTIAL
+    assert partial.fill_decisions[0].filled_volume == Decimal("0.50")
+    assert partial.portfolio.positions[0].volume == Decimal("0.50")
+    assert partial.portfolio.margin_used == Decimal("50.00")
+
+    rejected_engine = engine(
+        (source, entry_bar), BrokerSimulationModel(margin_per_lot=Decimal("100000"))
+    ).submit(
+        PendingOrder(
+            signal=signal(source),
+            volume=Decimal("1"),
+            stop_loss=Decimal("99"),
+        )
+    )
+    _, after_source = rejected_engine.step()
+    rejected, _ = after_source.step()
+
+    assert rejected.fill_decisions[0].status is FillStatus.REJECTED
+    assert FillReason.INSUFFICIENT_MARGIN in rejected.fill_decisions[0].reason_codes
+    assert rejected.opening_fills == ()
+    assert rejected.portfolio.positions == ()

@@ -35,7 +35,13 @@ def instrument(symbol: str, asset_class: AssetClass, tick_size: str, tick_value:
 
 
 def fill(
-    *, symbol: str, side: Action, price: str, commission: str, at: datetime = NOW
+    *,
+    symbol: str,
+    side: Action,
+    price: str,
+    commission: str,
+    at: datetime = NOW,
+    reference_price: str | None = None,
 ) -> SimulatedFill:
     return SimulatedFill(
         id=uuid4(),
@@ -43,7 +49,7 @@ def fill(
         symbol=symbol,
         side=side,
         executed_at=at,
-        reference_price=Decimal(price),
+        reference_price=Decimal(reference_price or price),
         fill_price=Decimal(price),
         spread_price=Decimal("0"),
         slippage_price=Decimal("0"),
@@ -104,6 +110,66 @@ def test_close_position_realizes_tick_pnl_and_both_commissions() -> None:
     assert closed.equity == Decimal("1096")
     assert closed.closed_trades[0].gross_pnl == Decimal("100")
     assert closed.closed_trades[0].net_pnl == Decimal("96")
+
+
+def test_close_position_separates_reference_pnl_execution_cost_and_commission() -> None:
+    portfolio = PortfolioState(cash_balance=Decimal("1000")).open_position(
+        fill=fill(
+            symbol="XAUUSD",
+            side=Action.BUY,
+            reference_price="100",
+            price="100.02",
+            commission="2",
+        ),
+        volume=Decimal("1"),
+        instrument=instrument("XAUUSD", AssetClass.METAL, "0.01", "1"),
+    )
+
+    closed = portfolio.close_position(
+        position_id=portfolio.positions[0].id,
+        fill=fill(
+            symbol="XAUUSD",
+            side=Action.SELL,
+            reference_price="101",
+            price="100.98",
+            commission="2",
+            at=NOW + timedelta(minutes=15),
+        ),
+    )
+    result = closed.closed_trades[0]
+
+    assert result.gross_pnl == Decimal("100")
+    assert result.execution_cost == Decimal("4")
+    assert result.net_pnl == Decimal("92")
+    assert closed.cash_balance == Decimal("1092")
+
+
+def test_margin_is_reserved_released_and_swap_is_reconciled() -> None:
+    portfolio = PortfolioState(cash_balance=Decimal("1000")).open_position(
+        fill=fill(symbol="XAUUSD", side=Action.BUY, price="100", commission="2"),
+        volume=Decimal("1"),
+        instrument=instrument("XAUUSD", AssetClass.METAL, "0.01", "1"),
+        margin_required=Decimal("100"),
+    )
+
+    assert portfolio.margin_used == Decimal("100")
+    assert portfolio.free_margin == Decimal("898")
+    closed = portfolio.close_position(
+        position_id=portfolio.positions[0].id,
+        fill=fill(
+            symbol="XAUUSD",
+            side=Action.SELL,
+            price="101",
+            commission="2",
+            at=NOW + timedelta(days=1),
+        ),
+        swap_cost=Decimal("3"),
+    )
+
+    assert closed.margin_used == 0
+    assert closed.free_margin == Decimal("1093")
+    assert closed.closed_trades[0].swap_cost == Decimal("3")
+    assert closed.closed_trades[0].net_pnl == Decimal("93")
 
 
 def test_portfolio_rejects_invalid_volume_duplicate_fill_and_close_direction() -> None:

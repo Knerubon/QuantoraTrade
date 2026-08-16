@@ -2,7 +2,7 @@
 
 แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ รองรับสินทรัพย์หลายประเภท โดยเริ่มทดสอบกับ **XAUUSD และตลาด Forex** และออกแบบให้ขยายตลาดได้โดยไม่ผูก logic กับสัญลักษณ์ใดสัญลักษณ์หนึ่ง
 
-> สถานะ: Phase 1 เสร็จแล้ว, Phase 2 implementation ครบตาม scope และกำลังเริ่ม Phase 3 — Backtesting
+> สถานะ: Phase 1–2 merge แล้ว และ Phase 3 — Backtesting implementation เสร็จแล้วใน PR #9
 
 ## เป้าหมาย
 
@@ -54,7 +54,7 @@ Symbol Specification ครอบคลุม digits, point, pip/tick size, tick
 
 ก่อนรับรอง MT5 environment ใหม่ ให้ทำตาม [MT5 Terminal Validation Checklist](docs/13_MT5_TERMINAL_VALIDATION.md)
 
-## Phase 2 — Technical Strategy (กำลังพัฒนา)
+## Phase 2 — Technical Strategy (เสร็จแล้ว)
 
 Indicator engine คำนวณ EMA 9/21/50, RSI 14, MACD 12/26/9 และ ATR 14 ด้วย `Decimal` จาก closed candles ที่เรียงตามเวลาเท่านั้น ผลลัพธ์ทุกจุดเป็น causal และไม่อ่านข้อมูล candle ในอนาคต
 
@@ -65,7 +65,7 @@ reason codes แบบคงที่ และเวลา observed/expiry โ�
 Strategy configuration รองรับค่า global และ per-symbol override แบบ immutable พร้อม validation
 เพื่อให้การคำนวณย้อนหลังและหลายสินทรัพย์ใช้ config ที่ตรวจสอบได้
 
-## Phase 3 — Backtesting (กำลังพัฒนา)
+## Phase 3 — Backtesting (implementation เสร็จแล้ว)
 
 Simulation clock รวม closed candles หลาย symbol/timeframe ตาม UTC โดยให้ context timeframe
 เกิดก่อน entry timeframe เมื่อปิดพร้อมกัน และใช้ canonical symbol เป็นลำดับตัดสินที่ทำซ้ำได้
@@ -77,6 +77,36 @@ equity, open positions และ closed trades ด้วย tick specification �
 Protective exit simulator รองรับ SL/TP และ gap โดยเลือก stop-loss ก่อนเมื่อข้อมูล OHLC
 ไม่สามารถบอกลำดับการแตะ SL/TP ได้ ส่วน Backtest Engine เชื่อม pending signal เข้ากับ
 next-bar fill, protective exit และ portfolio mark โดยไม่เปลี่ยน state ย้อนหลัง
+
+Broker simulation รับ margin-per-lot และ liquidity cap แยกตาม symbol จาก specification
+ที่กำหนดไว้ล่วงหน้า จากนั้นปัด volume ลงตาม min/max/step และคืนผล FULL/PARTIAL/REJECTED
+พร้อม reason codes โดย Portfolio แสดง margin used/free margin และคิด swap ราย weekday
+รวม triple-swap day แบบ deterministic ส่วน commission คิดตาม filled volume จริง
+
+Trade Journal บันทึก position, signal และ opening/closing fill IDs พร้อม reference/fill prices,
+holding time, gross P&L, execution cost, commission และ net P&L โดยตรวจ reconciliation กับ
+final portfolio ส่วน Evaluation layer คำนวณ return, expectancy, win/loss quality, profit factor,
+streak และ high-water-mark drawdown ด้วย `Decimal`
+
+Dataset splitter แบ่ง Training/Validation/Test ตามลำดับเวลาเท่านั้น และรองรับ purge/embargo
+จากช่วง label เพื่อป้องกันข้อมูลอนาคตรั่วข้าม partition
+
+Experiment configuration ล็อก code commit, dataset checksum, strategy/risk/engine versions,
+broker profile, symbols, timeframe, period, cost scenario และ random seed เพื่อสร้าง reproducibility manifest
+กับ run ID แบบ deterministic ส่วน Baseline Report สรุป overall, แต่ละ partition และแต่ละ symbol
+เทียบ no-trade baseline พร้อม JSON artifacts และ SHA-256 checksums โดยสถานะเป็น
+`RESEARCH_ONLY` เสมอ
+
+Complete experiment runner ผูกทุก order กับ point-in-time sample และ partition ที่ระบุไว้
+ส่ง order หลัง source candle ถูกสังเกตแล้วเท่านั้น และปฏิเสธ run ที่จบพร้อม pending order หรือ
+open position โดย Event Replay Journal บันทึก fills, exits, rejection reasons และ portfolio state
+ทุก event สำหรับตรวจย้อนหลัง
+
+ผลลัพธ์ถูกสร้างเป็น `summary.json`, `manifest.json`, `trades.json`, `events.json`,
+`report.html` และ `checksums.json` จากนั้นเขียนผ่าน staging directory ตรวจ SHA-256 และ publish
+แบบ atomic Golden regression test ครอบคลุม XAUUSD/EURUSD และ Training/Validation/Test
+ด้วย report hash ที่ล็อกไว้ ทั้งหมดนี้เป็นหลักฐานด้านความถูกต้องของ framework ไม่ใช่หลักฐานว่า
+กลยุทธ์ทำกำไรบนข้อมูลตลาดจริง
 
 ## เอกสารโครงการ
 
@@ -95,7 +125,7 @@ next-bar fill, protective exit และ portfolio mark โดยไม่เป
 13. [MT5 Terminal Validation Checklist](docs/13_MT5_TERMINAL_VALIDATION.md)
 14. [Research Evidence Base](docs/14_RESEARCH_EVIDENCE_BASE.md)
 
-Phase 0–2 implementation ครบตาม scope แล้ว ขั้นถัดไปคือ Phase 3 Backtesting
+Phase 0–3 implementation ครบตาม roadmap แล้ว ขั้นถัดไปคือ Phase 4 — AI Research
 
 ## สถานะสำคัญ
 
