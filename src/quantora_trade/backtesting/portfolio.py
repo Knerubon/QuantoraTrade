@@ -22,7 +22,9 @@ class OpenPosition:
 
     id: UUID
     opening_fill_id: UUID
+    opening_signal_id: UUID
     symbol: str
+    timeframe: str
     side: Action
     volume: Decimal
     entry_price: Decimal
@@ -32,10 +34,14 @@ class OpenPosition:
     entry_commission: Decimal
     mark_price: Decimal
     marked_at: datetime
+    stop_loss: Decimal | None
+    take_profit: Decimal | None
 
     def __post_init__(self) -> None:
         if self.symbol != self.symbol.strip().upper():
             raise ValueError("position symbol must be canonical uppercase")
+        if self.timeframe not in {"M5", "M15", "H1"}:
+            raise ValueError("position timeframe is not supported")
         if not isinstance(self.side, Action) or self.side is Action.HOLD:
             raise ValueError("position side must be BUY or SELL")
         _require_utc(self.opened_at, "opened_at")
@@ -59,6 +65,21 @@ class OpenPosition:
             raise ValueError("position economics must be greater than zero")
         if self.entry_commission < 0:
             raise ValueError("entry commission must be non-negative")
+        protective_prices = tuple(
+            price for price in (self.stop_loss, self.take_profit) if price is not None
+        )
+        if any(not price.is_finite() or price <= 0 for price in protective_prices):
+            raise ValueError("protective prices must be finite and greater than zero")
+        if self.side is Action.BUY:
+            if self.stop_loss is not None and self.stop_loss >= self.entry_price:
+                raise ValueError("BUY stop loss must be below entry")
+            if self.take_profit is not None and self.take_profit <= self.entry_price:
+                raise ValueError("BUY take profit must be above entry")
+        if self.side is Action.SELL:
+            if self.stop_loss is not None and self.stop_loss <= self.entry_price:
+                raise ValueError("SELL stop loss must be above entry")
+            if self.take_profit is not None and self.take_profit >= self.entry_price:
+                raise ValueError("SELL take profit must be below entry")
 
     @property
     def unrealized_pnl(self) -> Decimal:
@@ -131,6 +152,9 @@ class PortfolioState:
         fill: SimulatedFill,
         volume: Decimal,
         instrument: Instrument,
+        timeframe: str = "M15",
+        stop_loss: Decimal | None = None,
+        take_profit: Decimal | None = None,
     ) -> "PortfolioState":
         """Open a position after validating symbol and broker volume constraints."""
 
@@ -152,7 +176,9 @@ class PortfolioState:
         position = OpenPosition(
             id=uuid5(NAMESPACE_URL, identity),
             opening_fill_id=fill.id,
+            opening_signal_id=fill.signal_id,
             symbol=fill.symbol,
+            timeframe=timeframe,
             side=fill.side,
             volume=volume,
             entry_price=fill.fill_price,
@@ -162,6 +188,8 @@ class PortfolioState:
             entry_commission=fill.commission,
             mark_price=fill.fill_price,
             marked_at=fill.executed_at,
+            stop_loss=stop_loss,
+            take_profit=take_profit,
         )
         if any(existing.id == position.id for existing in self.positions):
             raise ValueError("opening fill has already created a position")
@@ -173,18 +201,29 @@ class PortfolioState:
         )
 
     def mark_to_market(
-        self, *, symbol: str, price: Decimal, observed_at: datetime
+        self,
+        *,
+        symbol: str,
+        price: Decimal,
+        observed_at: datetime,
+        timeframe: str | None = None,
     ) -> "PortfolioState":
         """Mark every open position for one symbol without affecting other symbols."""
 
         _require_utc(observed_at, "observed_at")
         if price <= 0:
             raise ValueError("mark price must be greater than zero")
-        if not any(position.symbol == symbol for position in self.positions):
+
+        def matches(position: OpenPosition) -> bool:
+            return position.symbol == symbol and (
+                timeframe is None or position.timeframe == timeframe
+            )
+
+        if not any(matches(position) for position in self.positions):
             raise ValueError("portfolio has no open position for symbol")
         updated: list[OpenPosition] = []
         for position in self.positions:
-            if position.symbol != symbol:
+            if not matches(position):
                 updated.append(position)
                 continue
             if observed_at < position.marked_at:

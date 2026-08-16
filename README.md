@@ -74,6 +74,10 @@ Execution foundation เข้า market ได้เร็วสุดที่
 commission แบบ adverse-cost ส่วน Portfolio Accounting ติดตาม cash, realized/unrealized P&L,
 equity, open positions และ closed trades ด้วย tick specification ของแต่ละ symbol
 
+Protective exit simulator รองรับ SL/TP และ gap โดยเลือก stop-loss ก่อนเมื่อข้อมูล OHLC
+ไม่สามารถบอกลำดับการแตะ SL/TP ได้ ส่วน Backtest Engine เชื่อม pending signal เข้ากับ
+next-bar fill, protective exit และ portfolio mark โดยไม่เปลี่ยน state ย้อนหลัง
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)

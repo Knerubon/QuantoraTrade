@@ -55,7 +55,9 @@ MVP ใช้ **event-driven bar simulation**:
 - Candle ที่ยังไม่ปิด, timeframe/duration ไม่ตรง หรือ identity ซ้ำทำให้ run หยุดทันที
 - Market fill ใช้ราคาเปิดแท่งถัดไปและ adverse spread/slippage
 - Portfolio state เป็น immutable snapshot และคำนวณ P&L ด้วย tick size/value ของ symbol
-- Intrabar order lifecycle, margin, swap, metrics และ complete engine orchestration ยังอยู่ในงานถัดไป
+- Intrabar SL/TP ใช้ stop-first เมื่อแท่งเดียวแตะทั้งสองระดับ และใช้ราคาเปิดเมื่อ stop ถูก gap
+- Engine เดิน pending signal → next-bar fill → protective exit → portfolio mark แบบ immutable
+- Margin, swap, partial fill, metrics และ complete experiment orchestration ยังอยู่ในงานถัดไป
 
 ## 5. Data Requirements
 
