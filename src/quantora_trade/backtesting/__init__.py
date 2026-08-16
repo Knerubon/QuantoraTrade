@@ -12,21 +12,34 @@ from quantora_trade.backtesting.intrabar import (
     IntrabarExitReason,
     simulate_conservative_intrabar_exit,
 )
+from quantora_trade.backtesting.journal import TradeJournal
+from quantora_trade.backtesting.metrics import PerformanceMetrics, calculate_performance_metrics
 from quantora_trade.backtesting.portfolio import ClosedTrade, OpenPosition, PortfolioState
+from quantora_trade.backtesting.splits import (
+    ChronologicalDatasetSplit,
+    TemporalSample,
+    chronological_split,
+)
 
 __all__ = [
     "BacktestEngine",
     "BacktestStep",
     "CandleEvent",
+    "ChronologicalDatasetSplit",
     "ClosedTrade",
     "ExecutionCostModel",
     "IntrabarExit",
     "IntrabarExitReason",
     "OpenPosition",
     "PendingOrder",
+    "PerformanceMetrics",
     "PortfolioState",
     "SimulatedFill",
     "SimulationClock",
+    "TemporalSample",
+    "TradeJournal",
+    "calculate_performance_metrics",
+    "chronological_split",
     "simulate_conservative_intrabar_exit",
     "simulate_next_bar_market_fill",
 ]

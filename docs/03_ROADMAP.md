@@ -37,7 +37,7 @@
 
 **Exit criteria:** ไม่มี look-ahead bias และ signal ของแต่ละ symbol ทำซ้ำได้จากข้อมูล/config เดิม
 
-**สถานะ:** Phase 2 implementation complete บน development branch; รอ publication และ review ก่อน merge
+**สถานะ:** Phase 2 implementation complete และ merge เข้า `main` แล้ว
 
 ## Phase 3 — Backtesting
 
@@ -47,8 +47,8 @@
 - [x] Immutable position lifecycle และ multi-symbol portfolio accounting
 - [x] Intrabar SL/TP และ conservative ambiguity policy
 - [x] Event orchestration สำหรับ pending signal → fill → exit → portfolio mark
-- [ ] Metrics และ trade journal
-- [ ] Train/validation/out-of-sample split
+- [x] Core metrics และ deterministic trade journal
+- [x] Train/validation/out-of-sample split พร้อม purge/embargo
 - [ ] Baseline report
 
 **Exit criteria:** รายงานผลครบ ตรวจย้อนหลังได้ และมี out-of-sample result
@@ -97,8 +97,8 @@
 
 ## เอกสารที่จะจัดทำต่อ
 
-Phase 0 และ Phase 1 เสร็จแล้ว Phase 2 implementation ครบตาม scope ขั้นถัดไปคือ
-Phase 3 — Backtesting โดยเริ่มจาก simulation clock, next-bar execution และ cost model
+Phase 0–2 เสร็จแล้ว Phase 3 มี simulation, execution, portfolio, trade journal, core metrics
+และ chronological dataset split แล้ว ขั้นถัดไปคือ baseline report และส่วนจำลองที่ยังเหลือ
 
 
 ## Documentation Progress

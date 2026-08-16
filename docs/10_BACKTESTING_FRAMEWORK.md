@@ -57,7 +57,11 @@ MVP ใช้ **event-driven bar simulation**:
 - Portfolio state เป็น immutable snapshot และคำนวณ P&L ด้วย tick size/value ของ symbol
 - Intrabar SL/TP ใช้ stop-first เมื่อแท่งเดียวแตะทั้งสองระดับ และใช้ราคาเปิดเมื่อ stop ถูก gap
 - Engine เดิน pending signal → next-bar fill → protective exit → portfolio mark แบบ immutable
-- Margin, swap, partial fill, metrics และ complete experiment orchestration ยังอยู่ในงานถัดไป
+- Trade Journal ย้อนกลับจาก closed trade ถึง signal, opening fill และ closing fill ได้
+- Gross P&L ใช้ reference prices ส่วน execution cost แยกผลของ spread/slippage ออกจาก commission
+- Core metrics ครอบคลุม net return, expectancy, trade quality, streak และ high-water-mark drawdown
+- Chronological split ตัด label overlap ด้วย purge และเว้นข้อมูลหลัง boundary ด้วย embargo
+- Margin, swap, partial fill, baseline report และ complete experiment orchestration ยังอยู่ในงานถัดไป
 
 ## 5. Data Requirements
 
@@ -150,6 +154,10 @@ Transform ที่เรียนรู้ค่า ต้อง fit บน Tra
 ถ้า label/holding period ซ้อนข้าม boundary ต้อง purge samples ที่ overlap และเพิ่ม embargo ตามความเหมาะสม เพื่อลด leakage
 
 วันที่และสัดส่วนจริงเป็น config ต่อ experiment และต้องแสดงใน report
+
+Implementation ต้อง fail closed เมื่อ partition ว่าง, timestamp ไม่ใช่ UTC, sample ซ้ำ/ไม่เรียง,
+label ข้าม purge boundary หรือ sample อยู่ใน embargo window โดย sample ที่ถูกตัดต้องบันทึกใน
+`excluded` เพื่อ audit ได้ ห้ามลบทิ้งแบบเงียบ
 
 ## 10. Walk-Forward Analysis
 
@@ -406,7 +414,7 @@ Official result ต้องสร้างใหม่ได้จาก Manife
 ## 24. Cost and Execution Metrics
 
 - gross vs net P&L
-- spread cost
+- execution cost จาก spread/slippage เทียบ reference prices
 - commission
 - swap/fees
 - slippage

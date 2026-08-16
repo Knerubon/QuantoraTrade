@@ -27,11 +27,14 @@ class OpenPosition:
     timeframe: str
     side: Action
     volume: Decimal
+    entry_reference_price: Decimal
     entry_price: Decimal
     opened_at: datetime
     tick_size: Decimal
     tick_value: Decimal
     entry_commission: Decimal
+    entry_spread_price: Decimal
+    entry_slippage_price: Decimal
     mark_price: Decimal
     marked_at: datetime
     stop_loss: Decimal | None
@@ -50,21 +53,31 @@ class OpenPosition:
             raise ValueError("position mark cannot precede entry")
         economics = (
             self.volume,
+            self.entry_reference_price,
             self.entry_price,
             self.tick_size,
             self.tick_value,
             self.entry_commission,
+            self.entry_spread_price,
+            self.entry_slippage_price,
             self.mark_price,
         )
         if any(not value.is_finite() for value in economics):
             raise ValueError("position economics must be finite")
         if (
-            min(self.volume, self.entry_price, self.tick_size, self.tick_value, self.mark_price)
+            min(
+                self.volume,
+                self.entry_reference_price,
+                self.entry_price,
+                self.tick_size,
+                self.tick_value,
+                self.mark_price,
+            )
             <= 0
         ):
             raise ValueError("position economics must be greater than zero")
-        if self.entry_commission < 0:
-            raise ValueError("entry commission must be non-negative")
+        if min(self.entry_commission, self.entry_spread_price, self.entry_slippage_price) < 0:
+            raise ValueError("entry costs must be non-negative")
         protective_prices = tuple(
             price for price in (self.stop_loss, self.take_profit) if price is not None
         )
@@ -93,31 +106,65 @@ class ClosedTrade:
     """Auditable realized result including both sides of commission."""
 
     position_id: UUID
+    opening_fill_id: UUID
     closing_fill_id: UUID
+    opening_signal_id: UUID
     symbol: str
+    timeframe: str
     side: Action
     volume: Decimal
+    entry_reference_price: Decimal
+    exit_reference_price: Decimal
     entry_price: Decimal
     exit_price: Decimal
     opened_at: datetime
     closed_at: datetime
     gross_pnl: Decimal
+    execution_cost: Decimal
+    entry_commission: Decimal
+    exit_commission: Decimal
     net_pnl: Decimal
 
     def __post_init__(self) -> None:
         if self.symbol != self.symbol.strip().upper():
             raise ValueError("closed trade symbol must be canonical uppercase")
+        if self.timeframe not in {"M5", "M15", "H1"}:
+            raise ValueError("closed trade timeframe is not supported")
         if not isinstance(self.side, Action) or self.side is Action.HOLD:
             raise ValueError("closed trade side must be BUY or SELL")
         _require_utc(self.opened_at, "opened_at")
         _require_utc(self.closed_at, "closed_at")
         if self.closed_at < self.opened_at:
             raise ValueError("closed trade cannot end before it opens")
-        values = (self.volume, self.entry_price, self.exit_price, self.gross_pnl, self.net_pnl)
+        values = (
+            self.volume,
+            self.entry_reference_price,
+            self.exit_reference_price,
+            self.entry_price,
+            self.exit_price,
+            self.gross_pnl,
+            self.execution_cost,
+            self.entry_commission,
+            self.exit_commission,
+            self.net_pnl,
+        )
         if any(not value.is_finite() for value in values):
             raise ValueError("closed trade values must be finite")
-        if self.volume <= 0 or self.entry_price <= 0 or self.exit_price <= 0:
+        if (
+            self.volume <= 0
+            or self.entry_reference_price <= 0
+            or self.exit_reference_price <= 0
+            or self.entry_price <= 0
+            or self.exit_price <= 0
+        ):
             raise ValueError("closed trade volume and prices must be greater than zero")
+        if min(self.execution_cost, self.entry_commission, self.exit_commission) < 0:
+            raise ValueError("closed trade costs must be non-negative")
+        if (
+            self.net_pnl
+            != self.gross_pnl - self.execution_cost - self.entry_commission - self.exit_commission
+        ):
+            raise ValueError("closed trade net PnL must reconcile with costs")
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,11 +228,14 @@ class PortfolioState:
             timeframe=timeframe,
             side=fill.side,
             volume=volume,
+            entry_reference_price=fill.reference_price,
             entry_price=fill.fill_price,
             opened_at=fill.executed_at,
             tick_size=instrument.tick_size,
             tick_value=instrument.tick_value,
             entry_commission=fill.commission,
+            entry_spread_price=fill.spread_price,
+            entry_slippage_price=fill.slippage_price,
             mark_price=fill.fill_price,
             marked_at=fill.executed_at,
             stop_loss=stop_loss,
@@ -246,26 +296,41 @@ class PortfolioState:
         if fill.executed_at < position.opened_at:
             raise ValueError("closing fill cannot precede position entry")
         direction = Decimal("1") if position.side is Action.BUY else Decimal("-1")
-        ticks = ((fill.fill_price - position.entry_price) / position.tick_size) * direction
-        gross_pnl = ticks * position.tick_value * position.volume
-        net_pnl = gross_pnl - position.entry_commission - fill.commission
+        reference_ticks = (
+            (fill.reference_price - position.entry_reference_price) / position.tick_size
+        ) * direction
+        gross_pnl = reference_ticks * position.tick_value * position.volume
+        filled_ticks = ((fill.fill_price - position.entry_price) / position.tick_size) * direction
+        filled_pnl = filled_ticks * position.tick_value * position.volume
+        execution_cost = gross_pnl - filled_pnl
+        if execution_cost < 0:
+            raise ValueError("closing fill improves on reference prices")
+        net_pnl = gross_pnl - execution_cost - position.entry_commission - fill.commission
         trade = ClosedTrade(
             position_id=position.id,
+            opening_fill_id=position.opening_fill_id,
             closing_fill_id=fill.id,
+            opening_signal_id=position.opening_signal_id,
             symbol=position.symbol,
+            timeframe=position.timeframe,
             side=position.side,
             volume=position.volume,
+            entry_reference_price=position.entry_reference_price,
+            exit_reference_price=fill.reference_price,
             entry_price=position.entry_price,
             exit_price=fill.fill_price,
             opened_at=position.opened_at,
             closed_at=fill.executed_at,
             gross_pnl=gross_pnl,
+            execution_cost=execution_cost,
+            entry_commission=position.entry_commission,
+            exit_commission=fill.commission,
             net_pnl=net_pnl,
         )
         remaining = tuple(item for item in self.positions if item.id != position_id)
         return PortfolioState(
-            cash_balance=self.cash_balance + gross_pnl - fill.commission,
-            realized_pnl=self.realized_pnl + gross_pnl - fill.commission,
+            cash_balance=self.cash_balance + filled_pnl - fill.commission,
+            realized_pnl=self.realized_pnl + filled_pnl - fill.commission,
             positions=remaining,
             closed_trades=(*self.closed_trades, trade),
         )

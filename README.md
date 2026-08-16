@@ -2,7 +2,7 @@
 
 แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ รองรับสินทรัพย์หลายประเภท โดยเริ่มทดสอบกับ **XAUUSD และตลาด Forex** และออกแบบให้ขยายตลาดได้โดยไม่ผูก logic กับสัญลักษณ์ใดสัญลักษณ์หนึ่ง
 
-> สถานะ: Phase 1 เสร็จแล้ว, Phase 2 implementation ครบตาม scope และกำลังเริ่ม Phase 3 — Backtesting
+> สถานะ: Phase 1–2 เสร็จแล้ว และกำลังพัฒนา Phase 3 — Backtesting
 
 ## เป้าหมาย
 
@@ -54,7 +54,7 @@ Symbol Specification ครอบคลุม digits, point, pip/tick size, tick
 
 ก่อนรับรอง MT5 environment ใหม่ ให้ทำตาม [MT5 Terminal Validation Checklist](docs/13_MT5_TERMINAL_VALIDATION.md)
 
-## Phase 2 — Technical Strategy (กำลังพัฒนา)
+## Phase 2 — Technical Strategy (เสร็จแล้ว)
 
 Indicator engine คำนวณ EMA 9/21/50, RSI 14, MACD 12/26/9 และ ATR 14 ด้วย `Decimal` จาก closed candles ที่เรียงตามเวลาเท่านั้น ผลลัพธ์ทุกจุดเป็น causal และไม่อ่านข้อมูล candle ในอนาคต
 
@@ -77,6 +77,14 @@ equity, open positions และ closed trades ด้วย tick specification �
 Protective exit simulator รองรับ SL/TP และ gap โดยเลือก stop-loss ก่อนเมื่อข้อมูล OHLC
 ไม่สามารถบอกลำดับการแตะ SL/TP ได้ ส่วน Backtest Engine เชื่อม pending signal เข้ากับ
 next-bar fill, protective exit และ portfolio mark โดยไม่เปลี่ยน state ย้อนหลัง
+
+Trade Journal บันทึก position, signal และ opening/closing fill IDs พร้อม reference/fill prices,
+holding time, gross P&L, execution cost, commission และ net P&L โดยตรวจ reconciliation กับ
+final portfolio ส่วน Evaluation layer คำนวณ return, expectancy, win/loss quality, profit factor,
+streak และ high-water-mark drawdown ด้วย `Decimal`
+
+Dataset splitter แบ่ง Training/Validation/Test ตามลำดับเวลาเท่านั้น และรองรับ purge/embargo
+จากช่วง label เพื่อป้องกันข้อมูลอนาคตรั่วข้าม partition
 
 ## เอกสารโครงการ
 
