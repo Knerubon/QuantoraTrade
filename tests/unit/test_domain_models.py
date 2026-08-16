@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from quantora_trade.domain.enums import Action, AssetClass, TradingMode
+from quantora_trade.domain.enums import Action, AssetClass, SignalReasonCode, TradingMode
 from quantora_trade.domain.models import (
     ApprovedOrderIntent,
     Candle,
@@ -168,6 +168,42 @@ def test_signal_when_expired_at_observation_rejects_value() -> None:
 def test_signal_when_confidence_is_out_of_range_rejects_value(confidence: Decimal) -> None:
     with pytest.raises(ValueError, match="confidence"):
         make_signal(confidence=confidence)
+
+
+@pytest.mark.parametrize("confidence", [Decimal("NaN"), Decimal("Infinity")])
+def test_signal_when_confidence_is_not_finite_rejects_value(confidence: Decimal) -> None:
+    with pytest.raises(ValueError, match="finite Decimal"):
+        make_signal(confidence=confidence)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"symbol": "xauusd"}, "canonical uppercase"),
+        ({"timeframe": "D1"}, "not supported"),
+        ({"action": "NOT_AN_ACTION"}, "BUY, SELL, or HOLD"),
+        ({"reason_codes": ("MADE_UP_REASON",)}, "unknown reason code"),
+        (
+            {
+                "action": Action.BUY,
+                "reason_codes": (SignalReasonCode.EMA_BEARISH_ALIGNMENT.value,),
+            },
+            "incompatible",
+        ),
+        (
+            {
+                "action": Action.HOLD,
+                "reason_codes": (SignalReasonCode.EMA_BULLISH_ALIGNMENT.value,),
+            },
+            "directional",
+        ),
+    ],
+)
+def test_signal_rejects_noncanonical_or_semantically_invalid_values(
+    overrides: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        make_signal(**overrides)
 
 
 def test_decision_when_valid_is_created() -> None:

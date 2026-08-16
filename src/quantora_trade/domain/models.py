@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from quantora_trade.domain.enums import Action, AssetClass, TradingMode
+from quantora_trade.domain.enums import Action, AssetClass, SignalReasonCode, TradingMode
 
 
 def _require_utc(value: datetime, field_name: str) -> None:
@@ -107,12 +107,65 @@ class Signal:
     expires_at: datetime
 
     def __post_init__(self) -> None:
+        if not self.symbol.strip() or not self.timeframe.strip():
+            raise ValueError("signal symbol and timeframe must not be empty")
+        if self.symbol != self.symbol.strip().upper():
+            raise ValueError("signal symbol must be canonical uppercase")
+        if self.timeframe not in {"M5", "M15", "H1"}:
+            raise ValueError("signal timeframe is not supported")
+        if not isinstance(self.action, Action):
+            raise ValueError("signal action must be BUY, SELL, or HOLD")
+        if not self.strategy_version.strip():
+            raise ValueError("strategy_version must not be empty")
         _require_utc(self.observed_at, "observed_at")
         _require_utc(self.expires_at, "expires_at")
         if self.expires_at <= self.observed_at:
             raise ValueError("expires_at must be after observed_at")
+        if not isinstance(self.confidence, Decimal) or not self.confidence.is_finite():
+            raise ValueError("confidence must be a finite Decimal between zero and one")
         if not Decimal("0") <= self.confidence <= Decimal("1"):
             raise ValueError("confidence must be between zero and one")
+        if not self.reason_codes:
+            raise ValueError("signal requires at least one reason code")
+        if any(not code.strip() for code in self.reason_codes):
+            raise ValueError("reason codes must not be empty")
+        if tuple(sorted(set(self.reason_codes))) != self.reason_codes:
+            raise ValueError("reason codes must be unique and sorted")
+        try:
+            parsed_reasons = {SignalReasonCode(code) for code in self.reason_codes}
+        except ValueError as error:
+            raise ValueError("signal contains an unknown reason code") from error
+
+        bullish = {
+            SignalReasonCode.EMA_BULLISH_ALIGNMENT,
+            SignalReasonCode.RSI_BULLISH_CONFIRMATION,
+            SignalReasonCode.MACD_BULLISH_CONFIRMATION,
+            SignalReasonCode.SUPPORT_REJECTION,
+            SignalReasonCode.BULLISH_CANDLE_PATTERN,
+            SignalReasonCode.H1_BULLISH_CONTEXT,
+            SignalReasonCode.BULLISH_TRIGGER,
+        }
+        bearish = {
+            SignalReasonCode.EMA_BEARISH_ALIGNMENT,
+            SignalReasonCode.RSI_BEARISH_CONFIRMATION,
+            SignalReasonCode.MACD_BEARISH_CONFIRMATION,
+            SignalReasonCode.RESISTANCE_REJECTION,
+            SignalReasonCode.BEARISH_CANDLE_PATTERN,
+            SignalReasonCode.H1_BEARISH_CONTEXT,
+            SignalReasonCode.BEARISH_TRIGGER,
+        }
+        hold_only = {
+            SignalReasonCode.BELOW_MINIMUM_CONFIDENCE,
+            SignalReasonCode.INSUFFICIENT_EVIDENCE,
+            SignalReasonCode.INSUFFICIENT_HISTORY,
+            SignalReasonCode.CONFLICTING_SIGNALS,
+        }
+        if self.action is Action.BUY and parsed_reasons & (bearish | hold_only):
+            raise ValueError("BUY signal contains incompatible reason codes")
+        if self.action is Action.SELL and parsed_reasons & (bullish | hold_only):
+            raise ValueError("SELL signal contains incompatible reason codes")
+        if self.action is Action.HOLD and parsed_reasons & (bullish | bearish):
+            raise ValueError("HOLD signal contains directional reason codes")
 
 
 @dataclass(frozen=True, slots=True)
