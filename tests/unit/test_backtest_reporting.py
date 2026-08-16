@@ -33,6 +33,7 @@ def config(*, dirty: bool = False, official: bool = True) -> ExperimentConfig:
         dirty_worktree=dirty,
         official=official,
         engine_version="0.1.0",
+        broker_profile_version="broker-fixture-v1",
         strategy_version="technical-v1",
         risk_policy_version="risk-backtest-v1",
         dataset_id="fixture-multi-asset-v1",

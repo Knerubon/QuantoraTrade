@@ -4,6 +4,13 @@ from dataclasses import dataclass, replace
 from decimal import Decimal
 from uuid import UUID
 
+from quantora_trade.backtesting.broker import (
+    BrokerFillDecision,
+    BrokerSimulationModel,
+    FillStatus,
+    calculate_swap_cost,
+    simulate_broker_fill_decision,
+)
 from quantora_trade.backtesting.clock import CandleEvent, SimulationClock
 from quantora_trade.backtesting.execution import (
     ExecutionCostModel,
@@ -45,6 +52,7 @@ class BacktestStep:
     opening_fills: tuple[SimulatedFill, ...]
     protective_exits: tuple[IntrabarExit, ...]
     expired_signal_ids: tuple[UUID, ...]
+    fill_decisions: tuple[BrokerFillDecision, ...]
     portfolio: PortfolioState
 
 
@@ -56,6 +64,7 @@ class BacktestEngine:
     portfolio: PortfolioState
     instruments: tuple[Instrument, ...]
     cost_models: tuple[tuple[str, ExecutionCostModel], ...]
+    broker_models: tuple[tuple[str, BrokerSimulationModel], ...] = ()
     pending_orders: tuple[PendingOrder, ...] = ()
 
     def __post_init__(self) -> None:
@@ -67,6 +76,11 @@ class BacktestEngine:
             raise ValueError("backtest cost models must have unique symbols")
         if set(instrument_symbols) != set(cost_symbols):
             raise ValueError("every instrument requires exactly one cost model")
+        broker_symbols = tuple(symbol for symbol, _ in self.broker_models)
+        if len(broker_symbols) != len(set(broker_symbols)):
+            raise ValueError("backtest broker models must have unique symbols")
+        if not set(broker_symbols) <= set(instrument_symbols):
+            raise ValueError("broker model references an unknown instrument")
 
     @classmethod
     def create(
@@ -76,6 +90,7 @@ class BacktestEngine:
         instruments: tuple[Instrument, ...],
         cost_models: tuple[tuple[str, ExecutionCostModel], ...],
         initial_cash: Decimal,
+        broker_models: tuple[tuple[str, BrokerSimulationModel], ...] = (),
     ) -> "BacktestEngine":
         """Create a validated engine at the beginning of a historical dataset."""
 
@@ -89,6 +104,7 @@ class BacktestEngine:
             portfolio=PortfolioState(cash_balance=initial_cash),
             instruments=instruments,
             cost_models=cost_models,
+            broker_models=broker_models,
         )
 
     def submit(self, order: PendingOrder) -> "BacktestEngine":
@@ -109,6 +125,12 @@ class BacktestEngine:
     def _costs(self, symbol: str) -> ExecutionCostModel:
         return next(costs for item_symbol, costs in self.cost_models if item_symbol == symbol)
 
+    def _broker(self, symbol: str) -> BrokerSimulationModel:
+        return next(
+            (model for item_symbol, model in self.broker_models if item_symbol == symbol),
+            BrokerSimulationModel(),
+        )
+
     def step(self) -> tuple[BacktestStep, "BacktestEngine"]:
         """Advance one event through next-bar entry, protective exits, and close marking."""
 
@@ -117,6 +139,7 @@ class BacktestEngine:
         portfolio = self.portfolio
         retained: list[PendingOrder] = []
         opening_fills: list[SimulatedFill] = []
+        fill_decisions: list[BrokerFillDecision] = []
         expired_ids: list[UUID] = []
 
         for order in self.pending_orders:
@@ -131,14 +154,30 @@ class BacktestEngine:
                 expired_ids.append(signal.id)
                 continue
             costs = self._costs(signal.symbol)
-            fill = simulate_next_bar_market_fill(signal=signal, next_bar=candle, costs=costs)
+            decision = simulate_broker_fill_decision(
+                requested_volume=order.volume,
+                available_margin=max(portfolio.free_margin, Decimal("0")),
+                instrument=self._instrument(signal.symbol),
+                model=self._broker(signal.symbol),
+                commission_per_lot=costs.commission_per_side,
+            )
+            fill_decisions.append(decision)
+            if decision.status is FillStatus.REJECTED:
+                continue
+            fill = simulate_next_bar_market_fill(
+                signal=signal,
+                next_bar=candle,
+                costs=costs,
+                volume=decision.filled_volume,
+            )
             portfolio = portfolio.open_position(
                 fill=fill,
-                volume=order.volume,
+                volume=decision.filled_volume,
                 instrument=self._instrument(signal.symbol),
                 timeframe=signal.timeframe,
                 stop_loss=order.stop_loss,
                 take_profit=order.take_profit,
+                margin_required=decision.margin_required,
             )
             opening_fills.append(fill)
 
@@ -159,6 +198,13 @@ class BacktestEngine:
             portfolio = portfolio.close_position(
                 position_id=position.id,
                 fill=exit_result.fill,
+                swap_cost=calculate_swap_cost(
+                    side=position.side,
+                    volume=position.volume,
+                    opened_at=position.opened_at,
+                    closed_at=exit_result.fill.executed_at,
+                    model=self._broker(position.symbol),
+                ),
             )
             exits.append(exit_result)
 
@@ -178,6 +224,7 @@ class BacktestEngine:
             portfolio=portfolio,
             instruments=self.instruments,
             cost_models=self.cost_models,
+            broker_models=self.broker_models,
             pending_orders=tuple(retained),
         )
         result = BacktestStep(
@@ -185,6 +232,7 @@ class BacktestEngine:
             opening_fills=tuple(opening_fills),
             protective_exits=tuple(exits),
             expired_signal_ids=tuple(expired_ids),
+            fill_decisions=tuple(fill_decisions),
             portfolio=portfolio,
         )
         return result, next_engine

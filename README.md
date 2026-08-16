@@ -78,6 +78,11 @@ Protective exit simulator รองรับ SL/TP และ gap โดยเล
 ไม่สามารถบอกลำดับการแตะ SL/TP ได้ ส่วน Backtest Engine เชื่อม pending signal เข้ากับ
 next-bar fill, protective exit และ portfolio mark โดยไม่เปลี่ยน state ย้อนหลัง
 
+Broker simulation รับ margin-per-lot และ liquidity cap แยกตาม symbol จาก specification
+ที่กำหนดไว้ล่วงหน้า จากนั้นปัด volume ลงตาม min/max/step และคืนผล FULL/PARTIAL/REJECTED
+พร้อม reason codes โดย Portfolio แสดง margin used/free margin และคิด swap ราย weekday
+รวม triple-swap day แบบ deterministic ส่วน commission คิดตาม filled volume จริง
+
 Trade Journal บันทึก position, signal และ opening/closing fill IDs พร้อม reference/fill prices,
 holding time, gross P&L, execution cost, commission และ net P&L โดยตรวจ reconciliation กับ
 final portfolio ส่วน Evaluation layer คำนวณ return, expectancy, win/loss quality, profit factor,
@@ -87,7 +92,7 @@ Dataset splitter แบ่ง Training/Validation/Test ตามลำดับ�
 จากช่วง label เพื่อป้องกันข้อมูลอนาคตรั่วข้าม partition
 
 Experiment configuration ล็อก code commit, dataset checksum, strategy/risk/engine versions,
-symbols, timeframe, period, cost scenario และ random seed เพื่อสร้าง reproducibility manifest
+broker profile, symbols, timeframe, period, cost scenario และ random seed เพื่อสร้าง reproducibility manifest
 กับ run ID แบบ deterministic ส่วน Baseline Report สรุป overall, แต่ละ partition และแต่ละ symbol
 เทียบ no-trade baseline พร้อม JSON artifacts และ SHA-256 checksums โดยสถานะเป็น
 `RESEARCH_ONLY` เสมอ

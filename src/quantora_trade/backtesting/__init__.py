@@ -1,5 +1,13 @@
 """Deterministic historical simulation primitives."""
 
+from quantora_trade.backtesting.broker import (
+    BrokerFillDecision,
+    BrokerSimulationModel,
+    FillReason,
+    FillStatus,
+    calculate_swap_cost,
+    simulate_broker_fill_decision,
+)
 from quantora_trade.backtesting.clock import CandleEvent, SimulationClock
 from quantora_trade.backtesting.engine import BacktestEngine, BacktestStep, PendingOrder
 from quantora_trade.backtesting.execution import (
@@ -42,11 +50,15 @@ __all__ = [
     "BacktestStep",
     "BaselineArtifacts",
     "BaselineReport",
+    "BrokerFillDecision",
+    "BrokerSimulationModel",
     "CandleEvent",
     "ChronologicalDatasetSplit",
     "ClosedTrade",
     "ExecutionCostModel",
     "ExperimentConfig",
+    "FillReason",
+    "FillStatus",
     "IntrabarExit",
     "IntrabarExitReason",
     "OpenPosition",
@@ -65,7 +77,9 @@ __all__ = [
     "build_baseline_report",
     "build_reproducibility_manifest",
     "calculate_performance_metrics",
+    "calculate_swap_cost",
     "chronological_split",
+    "simulate_broker_fill_decision",
     "simulate_conservative_intrabar_exit",
     "simulate_next_bar_market_fill",
 ]

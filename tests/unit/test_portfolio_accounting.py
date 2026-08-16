@@ -144,6 +144,34 @@ def test_close_position_separates_reference_pnl_execution_cost_and_commission() 
     assert closed.cash_balance == Decimal("1092")
 
 
+def test_margin_is_reserved_released_and_swap_is_reconciled() -> None:
+    portfolio = PortfolioState(cash_balance=Decimal("1000")).open_position(
+        fill=fill(symbol="XAUUSD", side=Action.BUY, price="100", commission="2"),
+        volume=Decimal("1"),
+        instrument=instrument("XAUUSD", AssetClass.METAL, "0.01", "1"),
+        margin_required=Decimal("100"),
+    )
+
+    assert portfolio.margin_used == Decimal("100")
+    assert portfolio.free_margin == Decimal("898")
+    closed = portfolio.close_position(
+        position_id=portfolio.positions[0].id,
+        fill=fill(
+            symbol="XAUUSD",
+            side=Action.SELL,
+            price="101",
+            commission="2",
+            at=NOW + timedelta(days=1),
+        ),
+        swap_cost=Decimal("3"),
+    )
+
+    assert closed.margin_used == 0
+    assert closed.free_margin == Decimal("1093")
+    assert closed.closed_trades[0].swap_cost == Decimal("3")
+    assert closed.closed_trades[0].net_pnl == Decimal("93")
+
+
 def test_portfolio_rejects_invalid_volume_duplicate_fill_and_close_direction() -> None:
     entry = fill(symbol="EURUSD", side=Action.BUY, price="1.1000", commission="1")
     spec = instrument("EURUSD", AssetClass.FOREX, "0.0001", "10")

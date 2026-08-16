@@ -65,7 +65,12 @@ MVP ใช้ **event-driven bar simulation**:
   random seed และ split membership เข้ากับ deterministic run ID
 - Baseline report แยก overall, Training/Validation/Test และ per-symbol เทียบ no-trade baseline
 - Artifact bundle สร้าง `summary.json`, `manifest.json`, `trades.json` และ `checksums.json`
-- Margin, swap, partial fill, HTML/Parquet renderer และ complete experiment runner ยังอยู่ในงานถัดไป
+- Broker fill decision ปัด volume ลงตาม min/max/step และบันทึก FULL/PARTIAL/REJECTED
+  พร้อมเหตุผลจาก liquidity limit, margin limit และ volume constraints
+- Commission ต่อ lot คูณด้วย filled volume จริงทั้ง entry และ exit รวมทั้งใช้ใน affordability check
+- Portfolio จอง margin จาก broker-provided margin-per-lot และคำนวณ free margin ทุก snapshot
+- Swap model คิดต้นทุนเฉพาะ weekday พร้อม configurable triple-swap weekday และบันทึกใน trade
+- HTML/Parquet renderer, artifact persistence และ complete experiment runner ยังอยู่ในงานถัดไป
 
 ## 5. Data Requirements
 
@@ -208,6 +213,10 @@ Execution Simulator ต้องรองรับ:
 
 MVP อาจใช้ full fill สำหรับ liquid instruments แต่ต้องระบุ assumption และมี stress variant สำหรับ partial fill/rejection
 
+Implementation ปัจจุบันใช้ deterministic liquidity cap ต่อ symbol, ปัด volume ลงตาม broker
+`volume_min`, `volume_max`, `volume_step` และตัดสินจาก free margin หลัง commission หากเติมได้บางส่วน
+ต้องบันทึก remaining volume และ reason codes; market-order remainder ถูกยกเลิก ไม่ carry ข้ามแท่ง
+
 ## 13. Spread Model
 
 ลำดับความน่าเชื่อถือ:
@@ -237,7 +246,14 @@ Cost Model แยกตาม broker/account/symbol:
 - conversion เป็น account currency
 - fees อื่นที่เกี่ยวข้อง
 
+ค่า `commission_per_side` ใน implementation หมายถึง commission ต่อ lot ต่อ side และต้องคูณ
+ด้วย filled volume หาก order ถูก partial fill ห้ามคิด commission ของ requested volume ที่ไม่ได้ fill
+
 ถ้าข้อมูล swap ย้อนหลังไม่พร้อม ต้องระบุ omission และทำ sensitivity test
+
+Swap implementation รับ daily long/short cost ต่อ lot ใน account currency และ triple-swap weekday
+จาก broker profile โดยตรง ค่าปริยายเป็นศูนย์เพื่อไม่สร้างข้อมูลสมมติแบบเงียบ และ official report
+ต้องระบุ limitation หากไม่มีประวัติ swap ที่ตรงช่วงเวลา
 
 ## 15. Slippage Model
 
@@ -277,6 +293,11 @@ Portfolio Engine ต้องติดตาม:
 - daily high-water mark
 - drawdown
 - Kill Switch/cooldown state
+
+Margin implementation ใช้ `margin_per_lot` จาก broker specification ต่อ symbol แทนการใช้สูตร
+notional/leverage เดียวกับทุกสินทรัพย์ เพื่อไม่คำนวณ conversion ของ XAUUSD, EURUSD และ USDJPY
+ผิดพลาด หาก specification ไม่มี margin ที่แปลงเป็น account currency แล้ว ต้องไม่เดาค่าเพื่อใช้เป็น
+official result
 
 เมื่อ Signals เกิดพร้อมกัน ต้องใช้ deterministic priority policy เช่น event time, strategy priority และ canonical symbol เพื่อให้ผลทำซ้ำได้
 
@@ -381,6 +402,9 @@ Implementation ปัจจุบันสร้าง run ID จาก SHA-256 
 ดังนั้น config หรือ sample membership เปลี่ยนเพียงรายการเดียวจะกลายเป็นคนละ run โดยอัตโนมัติ
 official experiment ปฏิเสธ dirty worktree และ report ระดับ baseline บังคับสถานะ
 `RESEARCH_ONLY` ไม่ให้ใช้เป็นสิทธิ์เปิด Paper/Live Trading
+
+Manifest ต้องมี `broker_profile_version` เพื่อผูก margin, liquidity, swap และ commission assumptions
+กับผลรายงาน หากเปลี่ยน broker profile ต้องได้ config hash และ run ID ใหม่
 
 ## 23. Core Performance Metrics
 

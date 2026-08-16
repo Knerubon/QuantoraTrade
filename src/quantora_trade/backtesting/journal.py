@@ -49,7 +49,10 @@ class TradeJournal:
     def total_costs(self) -> Decimal:
         return sum(
             (
-                trade.execution_cost + trade.entry_commission + trade.exit_commission
+                trade.execution_cost
+                + trade.entry_commission
+                + trade.exit_commission
+                + trade.swap_cost
                 for trade in self.trades
             ),
             Decimal("0"),
@@ -120,6 +123,7 @@ class TradeJournal:
                 "execution_cost": str(trade.execution_cost),
                 "entry_commission": str(trade.entry_commission),
                 "exit_commission": str(trade.exit_commission),
+                "swap_cost": str(trade.swap_cost),
                 "net_pnl": str(trade.net_pnl),
             }
             for trade in self.trades

@@ -39,6 +39,7 @@ class OpenPosition:
     marked_at: datetime
     stop_loss: Decimal | None
     take_profit: Decimal | None
+    margin_required: Decimal = Decimal("0")
 
     def __post_init__(self) -> None:
         if self.symbol != self.symbol.strip().upper():
@@ -61,6 +62,7 @@ class OpenPosition:
             self.entry_spread_price,
             self.entry_slippage_price,
             self.mark_price,
+            self.margin_required,
         )
         if any(not value.is_finite() for value in economics):
             raise ValueError("position economics must be finite")
@@ -76,7 +78,15 @@ class OpenPosition:
             <= 0
         ):
             raise ValueError("position economics must be greater than zero")
-        if min(self.entry_commission, self.entry_spread_price, self.entry_slippage_price) < 0:
+        if (
+            min(
+                self.entry_commission,
+                self.entry_spread_price,
+                self.entry_slippage_price,
+                self.margin_required,
+            )
+            < 0
+        ):
             raise ValueError("entry costs must be non-negative")
         protective_prices = tuple(
             price for price in (self.stop_loss, self.take_profit) if price is not None
@@ -124,6 +134,7 @@ class ClosedTrade:
     entry_commission: Decimal
     exit_commission: Decimal
     net_pnl: Decimal
+    swap_cost: Decimal = Decimal("0")
 
     def __post_init__(self) -> None:
         if self.symbol != self.symbol.strip().upper():
@@ -147,6 +158,7 @@ class ClosedTrade:
             self.entry_commission,
             self.exit_commission,
             self.net_pnl,
+            self.swap_cost,
         )
         if any(not value.is_finite() for value in values):
             raise ValueError("closed trade values must be finite")
@@ -158,11 +170,23 @@ class ClosedTrade:
             or self.exit_price <= 0
         ):
             raise ValueError("closed trade volume and prices must be greater than zero")
-        if min(self.execution_cost, self.entry_commission, self.exit_commission) < 0:
+        if (
+            min(
+                self.execution_cost,
+                self.entry_commission,
+                self.exit_commission,
+                self.swap_cost,
+            )
+            < 0
+        ):
             raise ValueError("closed trade costs must be non-negative")
         if (
             self.net_pnl
-            != self.gross_pnl - self.execution_cost - self.entry_commission - self.exit_commission
+            != self.gross_pnl
+            - self.execution_cost
+            - self.entry_commission
+            - self.exit_commission
+            - self.swap_cost
         ):
             raise ValueError("closed trade net PnL must reconcile with costs")
 
@@ -193,6 +217,14 @@ class PortfolioState:
     def equity(self) -> Decimal:
         return self.cash_balance + self.unrealized_pnl
 
+    @property
+    def margin_used(self) -> Decimal:
+        return sum((position.margin_required for position in self.positions), Decimal("0"))
+
+    @property
+    def free_margin(self) -> Decimal:
+        return self.equity - self.margin_used
+
     def open_position(
         self,
         *,
@@ -202,6 +234,7 @@ class PortfolioState:
         timeframe: str = "M15",
         stop_loss: Decimal | None = None,
         take_profit: Decimal | None = None,
+        margin_required: Decimal = Decimal("0"),
     ) -> "PortfolioState":
         """Open a position after validating symbol and broker volume constraints."""
 
@@ -215,6 +248,10 @@ class PortfolioState:
             raise ValueError("position volume is not aligned to instrument step")
         if fill.commission > self.cash_balance:
             raise ValueError("insufficient cash for entry commission")
+        if not margin_required.is_finite() or margin_required < 0:
+            raise ValueError("required margin must be finite and non-negative")
+        if margin_required > self.free_margin - fill.commission:
+            raise ValueError("insufficient free margin")
         identity = json.dumps(
             {"fill_id": str(fill.id), "symbol": fill.symbol, "volume": str(volume)},
             sort_keys=True,
@@ -240,6 +277,7 @@ class PortfolioState:
             marked_at=fill.executed_at,
             stop_loss=stop_loss,
             take_profit=take_profit,
+            margin_required=margin_required,
         )
         if any(existing.id == position.id for existing in self.positions):
             raise ValueError("opening fill has already created a position")
@@ -281,7 +319,13 @@ class PortfolioState:
             updated.append(replace(position, mark_price=price, marked_at=observed_at))
         return replace(self, positions=tuple(updated))
 
-    def close_position(self, *, position_id: UUID, fill: SimulatedFill) -> "PortfolioState":
+    def close_position(
+        self,
+        *,
+        position_id: UUID,
+        fill: SimulatedFill,
+        swap_cost: Decimal = Decimal("0"),
+    ) -> "PortfolioState":
         """Close exactly one position and realize tick-value PnL plus exit commission."""
 
         matches = [position for position in self.positions if position.id == position_id]
@@ -295,6 +339,8 @@ class PortfolioState:
             raise ValueError("closing fill must oppose the position side")
         if fill.executed_at < position.opened_at:
             raise ValueError("closing fill cannot precede position entry")
+        if not swap_cost.is_finite() or swap_cost < 0:
+            raise ValueError("swap cost must be finite and non-negative")
         direction = Decimal("1") if position.side is Action.BUY else Decimal("-1")
         reference_ticks = (
             (fill.reference_price - position.entry_reference_price) / position.tick_size
@@ -305,7 +351,9 @@ class PortfolioState:
         execution_cost = gross_pnl - filled_pnl
         if execution_cost < 0:
             raise ValueError("closing fill improves on reference prices")
-        net_pnl = gross_pnl - execution_cost - position.entry_commission - fill.commission
+        net_pnl = (
+            gross_pnl - execution_cost - position.entry_commission - fill.commission - swap_cost
+        )
         trade = ClosedTrade(
             position_id=position.id,
             opening_fill_id=position.opening_fill_id,
@@ -326,11 +374,12 @@ class PortfolioState:
             entry_commission=position.entry_commission,
             exit_commission=fill.commission,
             net_pnl=net_pnl,
+            swap_cost=swap_cost,
         )
         remaining = tuple(item for item in self.positions if item.id != position_id)
         return PortfolioState(
-            cash_balance=self.cash_balance + filled_pnl - fill.commission,
-            realized_pnl=self.realized_pnl + filled_pnl - fill.commission,
+            cash_balance=self.cash_balance + filled_pnl - fill.commission - swap_cost,
+            realized_pnl=self.realized_pnl + filled_pnl - fill.commission - swap_cost,
             positions=remaining,
             closed_trades=(*self.closed_trades, trade),
         )

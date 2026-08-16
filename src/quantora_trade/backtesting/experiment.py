@@ -41,6 +41,7 @@ class ExperimentConfig:
     dirty_worktree: bool
     official: bool
     engine_version: str
+    broker_profile_version: str
     strategy_version: str
     risk_policy_version: str
     dataset_id: str
@@ -58,6 +59,7 @@ class ExperimentConfig:
         for field_name in (
             "run_name",
             "engine_version",
+            "broker_profile_version",
             "strategy_version",
             "risk_policy_version",
             "dataset_id",
@@ -101,6 +103,7 @@ class ExperimentConfig:
             "dirty_worktree": self.dirty_worktree,
             "official": self.official,
             "engine_version": self.engine_version,
+            "broker_profile_version": self.broker_profile_version,
             "strategy_version": self.strategy_version,
             "risk_policy_version": self.risk_policy_version,
             "dataset_id": self.dataset_id,

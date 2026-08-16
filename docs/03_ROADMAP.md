@@ -47,6 +47,9 @@
 - [x] Immutable position lifecycle และ multi-symbol portfolio accounting
 - [x] Intrabar SL/TP และ conservative ambiguity policy
 - [x] Event orchestration สำหรับ pending signal → fill → exit → portfolio mark
+- [x] Broker volume rounding, rejected/partial fills และ liquidity cap
+- [x] Margin used/free margin จาก broker-provided margin-per-lot แยก symbol
+- [x] Weekday swap financing และ configurable triple-swap day
 - [x] Core metrics และ deterministic trade journal
 - [x] Train/validation/out-of-sample split พร้อม purge/embargo
 - [x] Machine-readable baseline report และ reproducibility artifacts
@@ -99,7 +102,7 @@
 
 Phase 0–2 เสร็จแล้ว Phase 3 มี simulation, execution, portfolio, trade journal, core metrics
 และ chronological dataset split รวมถึง machine-readable baseline report แล้ว ขั้นถัดไปคือ
-margin, swap, partial fill, report renderer และ complete experiment runner
+report renderer, artifact persistence และ complete experiment runner
 
 
 ## Documentation Progress
