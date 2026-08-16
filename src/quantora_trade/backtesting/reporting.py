@@ -1,10 +1,13 @@
 """Canonical baseline reports and checksummed in-memory artifact bundles."""
 
 import hashlib
+import html
 import json
+import shutil
 from dataclasses import asdict, dataclass
 from decimal import Decimal
 from enum import StrEnum
+from pathlib import Path
 from typing import Any
 
 from quantora_trade.backtesting.experiment import (
@@ -135,6 +138,19 @@ class BaselineArtifacts:
         return matches[0]
 
 
+@dataclass(frozen=True, slots=True)
+class PersistedArtifacts:
+    directory: Path
+    files: tuple[tuple[str, str], ...]
+
+    def __post_init__(self) -> None:
+        if not self.directory.is_absolute():
+            raise ValueError("artifact directory must be absolute")
+        names = tuple(name for name, _ in self.files)
+        if names != tuple(sorted(names)) or len(names) != len(set(names)):
+            raise ValueError("persisted artifacts must use canonical unique names")
+
+
 def _combine_journals(journals: tuple[TradeJournal, ...]) -> TradeJournal:
     trades = tuple(
         sorted(
@@ -208,7 +224,66 @@ def build_baseline_report(
     )
 
 
-def build_baseline_artifacts(*, report: BaselineReport, journal: TradeJournal) -> BaselineArtifacts:
+def render_baseline_report_html(report: BaselineReport) -> bytes:
+    """Render a deterministic, dependency-free HTML summary for human review."""
+
+    def metric_rows(metrics: PerformanceMetrics) -> str:
+        fields = (
+            ("Net P&amp;L", metrics.net_pnl),
+            ("Total return", metrics.total_return),
+            ("Trades", metrics.trade_count),
+            ("Win rate", metrics.win_rate),
+            ("Expectancy", metrics.expectancy),
+            ("Profit factor", metrics.profit_factor),
+            ("Max drawdown", metrics.max_drawdown),
+            ("Max drawdown rate", metrics.max_drawdown_rate),
+        )
+        return "".join(
+            f"<tr><th>{name}</th><td>{html.escape(str(value))}</td></tr>" for name, value in fields
+        )
+
+    partition_sections = "".join(
+        f"<h3>{html.escape(item.name.value.title())}</h3><table>{metric_rows(item.metrics)}</table>"
+        for item in report.partitions
+    )
+    symbol_sections = "".join(
+        f"<h3>{html.escape(item.symbol)}</h3><table>{metric_rows(item.metrics)}</table>"
+        for item in report.symbols
+    )
+    config = report.manifest.config
+    document = (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        "<title>QuantoraTrade Baseline Report</title>"
+        "<style>body{font-family:system-ui,sans-serif;max-width:960px;margin:32px auto;"
+        "padding:0 20px;color:#18212b}table{border-collapse:collapse;width:100%;margin:8px 0 24px}"
+        "th,td{border:1px solid #d9e0e7;padding:8px;text-align:left}"
+        "th{width:45%;background:#f5f7fa}"
+        ".guard{padding:12px;background:#fff4d6;border:1px solid #e8bd52}</style></head><body>"
+        "<h1>QuantoraTrade Baseline Report</h1>"
+        f'<p class="guard">Promotion decision: {html.escape(report.promotion_decision)}</p>'
+        f"<p>Run: {html.escape(str(report.manifest.run_id))}<br>"
+        f"Dataset: {html.escape(config.dataset_id)}<br>"
+        f"Strategy: {html.escape(config.strategy_version)}<br>"
+        f"Period: {html.escape(config.period_start.isoformat())} — "
+        f"{html.escape(config.period_end.isoformat())}</p>"
+        f"<h2>Overall</h2><table>{metric_rows(report.overall)}</table>"
+        f"<h2>Partitions</h2>{partition_sections}"
+        f"<h2>Symbols</h2>{symbol_sections}"
+        "<h2>No-trade baseline</h2><table>"
+        f"<tr><th>Net P&amp;L</th><td>{report.no_trade_net_pnl}</td></tr>"
+        f"<tr><th>Total return</th><td>{report.no_trade_total_return}</td></tr>"
+        "</table></body></html>\n"
+    )
+    return document.encode()
+
+
+def build_baseline_artifacts(
+    *,
+    report: BaselineReport,
+    journal: TradeJournal,
+    event_records: tuple[dict[str, Any], ...] = (),
+) -> BaselineArtifacts:
     """Build deterministic JSON artifacts with a separate checksum index."""
 
     expected_metrics = calculate_performance_metrics(
@@ -217,7 +292,9 @@ def build_baseline_artifacts(*, report: BaselineReport, journal: TradeJournal) -
     if report.overall != expected_metrics:
         raise ValueError("artifact journal does not match baseline report")
     payloads = {
+        "events.json": _canonical_json(event_records),
         "manifest.json": _canonical_json(report.manifest.to_record()),
+        "report.html": render_baseline_report_html(report),
         "summary.json": _canonical_json(report.to_record()),
         "trades.json": _canonical_json(journal.to_records()),
     }
@@ -228,4 +305,39 @@ def build_baseline_artifacts(*, report: BaselineReport, journal: TradeJournal) -
             Artifact(name=name, content=content, sha256=hashlib.sha256(content).hexdigest())
             for name, content in sorted(payloads.items())
         )
+    )
+
+
+def persist_baseline_artifacts(
+    *, artifacts: BaselineArtifacts, output_directory: Path
+) -> PersistedArtifacts:
+    """Write a bundle through a staging directory, verify it, then publish atomically."""
+
+    target = output_directory.resolve()
+    if target.exists():
+        raise FileExistsError(f"artifact directory already exists: {target}")
+    if not target.parent.exists():
+        raise FileNotFoundError(f"artifact parent directory does not exist: {target.parent}")
+    bundle_identity = hashlib.sha256(
+        "".join(file.sha256 for file in artifacts.files).encode()
+    ).hexdigest()[:16]
+    staging = target.with_name(f".{target.name}.{bundle_identity}.tmp")
+    if staging.exists():
+        raise FileExistsError(f"artifact staging directory already exists: {staging}")
+
+    try:
+        staging.mkdir()
+        for artifact in artifacts.files:
+            path = staging / artifact.name
+            path.write_bytes(artifact.content)
+            if hashlib.sha256(path.read_bytes()).hexdigest() != artifact.sha256:
+                raise OSError(f"artifact verification failed: {artifact.name}")
+        staging.rename(target)
+    except Exception:
+        if staging.exists():
+            shutil.rmtree(staging)
+        raise
+    return PersistedArtifacts(
+        directory=target,
+        files=tuple((artifact.name, artifact.sha256) for artifact in artifacts.files),
     )

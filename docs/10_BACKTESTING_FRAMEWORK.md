@@ -64,13 +64,20 @@ MVP ใช้ **event-driven bar simulation**:
 - Experiment config และ manifest ผูก code commit, dataset checksum, versions, cost scenario,
   random seed และ split membership เข้ากับ deterministic run ID
 - Baseline report แยก overall, Training/Validation/Test และ per-symbol เทียบ no-trade baseline
-- Artifact bundle สร้าง `summary.json`, `manifest.json`, `trades.json` และ `checksums.json`
+- Artifact bundle สร้าง `summary.json`, `manifest.json`, `trades.json`, `events.json`,
+  `report.html` และ `checksums.json`
 - Broker fill decision ปัด volume ลงตาม min/max/step และบันทึก FULL/PARTIAL/REJECTED
   พร้อมเหตุผลจาก liquidity limit, margin limit และ volume constraints
 - Commission ต่อ lot คูณด้วย filled volume จริงทั้ง entry และ exit รวมทั้งใช้ใน affordability check
 - Portfolio จอง margin จาก broker-provided margin-per-lot และคำนวณ free margin ทุก snapshot
 - Swap model คิดต้นทุนเฉพาะ weekday พร้อม configurable triple-swap weekday และบันทึกใน trade
-- HTML/Parquet renderer, artifact persistence และ complete experiment runner ยังอยู่ในงานถัดไป
+- Complete experiment runner ตรวจ sample/partition/source candle แบบ fail closed และไม่ preload
+  future signal ก่อน source candle ถูกสังเกต
+- Event replay journal บันทึก submission, fill decision, protective exit และ portfolio snapshot
+  ของทุก candle event
+- Artifact persistence เขียนผ่าน deterministic staging directory ตรวจ SHA-256 แล้ว publish
+  directory แบบ atomic โดยไม่ overwrite ผลเดิม
+- Golden multi-symbol test ครอบคลุม Training/Validation/Test และล็อก expected report hash
 
 ## 5. Data Requirements
 
@@ -621,8 +628,9 @@ Monte Carlo ไม่แก้ข้อเสียของ sample ขนาด
 - `config.snapshot.yaml`
 - charts directory
 
-MVP ปัจจุบันสร้าง JSON artifact bundle ในหน่วยความจำพร้อม checksum ก่อน ส่วน Parquet,
-HTML/PDF และ Artifact Store persistence จะเพิ่มภายหลังโดยต้องรักษา canonical report schema เดิม
+Phase 3 สร้าง canonical JSON bundle, deterministic HTML report และ checksum index พร้อมเขียน
+ลง local Artifact Store แบบ atomic แล้ว ส่วน Parquet/PDF, remote object storage และ charts เป็น
+รูปแบบเสริมในระยะถัดไปและต้องรักษา canonical report schema เดิม
 
 PostgreSQL เก็บ metadata/summary และ Artifact Store เก็บไฟล์ พร้อม SHA-256 checksum
 
@@ -723,14 +731,19 @@ MVP ต้องให้ความถูกต้องมากกว่า�
 
 ## 39. Definition of Done
 
-Backtesting Framework พร้อมใช้งานเมื่อ:
+Phase 3 engineering พร้อมสำหรับใช้สร้างงานวิจัยย้อนหลังเมื่อ:
 
-- multi-symbol event ordering deterministic
-- closed-bar และ multi-timeframe alignment ผ่าน tests
-- Strategy/Decision/Risk ใช้ code เดียวกับ Paper
-- costs และ intrabar ambiguity ไม่ถูกละเลย
-- official run สร้าง Reproducibility Manifest
-- report แยก in-sample/out-of-sample และ per-symbol
-- walk-forward และ robustness tests ทำงาน
-- trade ทุกตัว replay ถึง source candles ได้
-- Backtest promotion เปิดได้เฉพาะ Paper Mode
+- [x] multi-symbol event ordering deterministic
+- [x] closed-bar และ multi-timeframe alignment ผ่าน tests
+- [x] costs และ intrabar ambiguity ไม่ถูกละเลย
+- [x] official run สร้าง Reproducibility Manifest
+- [x] report แยก in-sample/out-of-sample และ per-symbol
+- [x] trade ทุกตัวผูก opening signal กลับถึง source sample/candle ได้
+- [x] event replay และ artifact checksums ตรวจสอบย้อนหลังได้
+- [x] golden test ทำซ้ำแล้วได้ events, trades, metrics และ report hash เดิม
+- [x] promotion decision ถูกล็อกเป็น `RESEARCH_ONLY`
+
+การผ่านรายการนี้หมายถึง framework implementation เสร็จ ไม่ได้หมายถึง strategy ได้รับอนุมัติ
+สำหรับ Paper/Live การวิจัย Phase 4 ยังต้องใช้ approved historical dataset, rolling walk-forward,
+parameter stability และ base/adverse/stress cost scenarios ส่วน Risk Engine และ Paper promotion
+gate จะเสร็จใน Phase 5–6 ตาม roadmap

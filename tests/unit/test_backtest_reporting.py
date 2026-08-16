@@ -155,7 +155,9 @@ def test_baseline_report_segments_results_and_builds_verified_artifacts() -> Non
     assert report.promotion_decision == "RESEARCH_ONLY"
     assert tuple(file.name for file in artifacts.files) == (
         "checksums.json",
+        "events.json",
         "manifest.json",
+        "report.html",
         "summary.json",
         "trades.json",
     )
@@ -164,6 +166,7 @@ def test_baseline_report_segments_results_and_builds_verified_artifacts() -> Non
     for name, expected in checksums.items():
         assert hashlib.sha256(artifacts.get(name).content).hexdigest() == expected
     assert json.loads(artifacts.get("summary.json").content)["overall"]["net_pnl"] == "8"
+    assert b"QuantoraTrade Baseline Report" in artifacts.get("report.html").content
     with pytest.raises(ValueError, match="does not match"):
         build_baseline_artifacts(report=report, journal=TradeJournal())
 
