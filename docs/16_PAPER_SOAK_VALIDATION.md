@@ -34,6 +34,52 @@ python scripts/evaluate_paper_soak.py `
 คำสั่งคืน exit code `0` เมื่อทุก gate ผ่าน, `2` เมื่อมี gate ไม่ผ่าน และไม่ overwrite รายงานเดิม.
 JSON/Markdown report มี checksum ของ input evidence เพื่อรองรับ audit/reproduction.
 
+## Windows runner
+
+`scripts/paper-soak.ps1` เป็น bounded runner สำหรับ control plane ที่เปิดอยู่แล้ว โดยทำงานตามลำดับ
+preflight PAPER → enqueue Start → รอ acknowledgement → เก็บ `/status`, `/dashboard` และ events
+ตาม cadence → enqueue controlled Stop ใน `finally` → เรียก evaluator ตัว runner ไม่เปิด LIVE,
+ไม่รับ token ผ่าน command line และไม่บันทึก token ลง evidence.
+
+ก่อนใช้ให้ติดตั้ง package, เปิด PostgreSQL/API/PAPER worker ตาม operational configuration และผ่าน
+MT5 checklist จากนั้นตั้ง token เฉพาะใน PowerShell session:
+
+```powershell
+cd D:\QuantoraTrade
+python -m pip install -e ".[mt5]"
+$env:QUANTORA_API_TOKEN = Read-Host "PAPER API token"
+$commit = git rev-parse HEAD
+```
+
+ตัวอย่าง smoke run 2 นาที (เป็นการตรวจ runner เท่านั้น ไม่ใช่หลักฐานปิด Phase 6):
+
+```powershell
+.\scripts\paper-soak.ps1 `
+  -ApiUrl "http://127.0.0.1:8000" `
+  -Owner "Nerubon" `
+  -RunId "paper-smoke-$(Get-Date -Format yyyyMMdd-HHmmss)" `
+  -DurationSeconds 120 `
+  -IntervalSeconds 60 `
+  -Symbols XAUUSD `
+  -StrategyId "technical-v1" `
+  -ConfigVersion "paper-candidate-v1" `
+  -Config ".\config\risk.example.yaml" `
+  -DataVersion "REPLACE_WITH_MT5_BROKER_SERVER_AND_UTC_RANGE" `
+  -CodeVersion $commit `
+  -Output ".\artifacts\paper-soak\observations-smoke.json" `
+  -AcknowledgePaperOnly
+```
+
+สำหรับ owner-approved run ให้เปลี่ยน `RunId`, `DurationSeconds`, `IntervalSeconds`, config/data
+version และ output ใหม่ก่อนเริ่ม ห้าม reuse output เดิม ตัวอย่าง 7 วัน/5 นาทีใช้
+`DurationSeconds 604800` และ `IntervalSeconds 300` และต้องปล่อย PowerShell process ทำงานต่อเนื่อง.
+หากหน้าต่างปิด, เครื่อง sleep, API/MT5 ขาดการเชื่อมต่อ หรือ cadence ไม่ครบ ให้ถือว่า run นั้น FAIL
+และเริ่ม run ID ใหม่หลังแก้ incident.
+
+Evidence จะถูกเขียนแบบ atomic ทุก sample ที่ path จาก `-Output`; รายงานอยู่ในโฟลเดอร์
+`reports` ข้างไฟล์ evidence. การได้ verdict PASS ยังต้องผ่าน reconciliation และ owner/lead sign-off
+ตามหัวข้อ Real MT5/current-data closeout ด้านล่าง.
+
 ## Pass/fail gates
 
 - sample แรกต้องอยู่ใน `10%` ของ owner-set interval หลังเวลาเริ่ม (อย่างน้อยให้ tolerance 1 วินาที)
