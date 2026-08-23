@@ -73,20 +73,27 @@ walk-forward และ cost stress ใน Phase 4 ก่อนพิจารณ
 
 **Exit criteria:** AI มีผลทดสอบเทียบ baseline และไม่เชื่อมกับ execution โดยตรง
 
-**สถานะ:** Phase 4 engineering implementation complete ใน development branch โดย golden
+**สถานะ:** Phase 4 engineering implementation complete และ merge เข้า `main` แล้ว โดย golden
 walk-forward คงผลเป็น `RESEARCH_ONLY` เพราะ Brier score ยังไม่ชนะ no-skill prior การปิด
 empirical gate ต้องรัน approved historical XAUUSD/Forex dataset และ final untouched holdout
 
 ## Phase 5 — Risk & Decision
 
-- [ ] Position sizing
-- [ ] SL/TP rules
-- [ ] Daily loss และ drawdown guard
-- [ ] Consecutive-loss cooldown
-- [ ] Decision engine
-- [ ] Kill Switch
+- [x] Position sizing แบบ Decimal รวม transaction costs และ broker volume rules
+- [x] SL/TP และ versioned bounded exit policy พร้อม effective reward/risk
+- [x] Daily loss และ drawdown guard
+- [x] Consecutive-loss cooldown
+- [x] Deterministic Decision Engine
+- [x] Durable scoped Kill Switch และ fail-closed submission gate
 
 **Exit criteria:** ทุก order ผ่าน Risk Engine และทดสอบ rejection cases ครบ
+
+**สถานะ:** Phase 5 engineering implementation complete ใน branch
+`agent/phase-5-risk-decision` โดยรองรับ reconciled open/pending monetary risk,
+multi-currency exposure ที่แปลงหน่วยอย่างชัดเจน, cost-aware sizing, PostgreSQL-backed
+Kill Switch และ authoritative approval evidence ก่อนเรียก BrokerPort ระบบปฏิเสธ LIVE
+และ BACKTEST ที่ submission boundary ใน Phase 5 การ merge ต้องรอ GitHub CI รัน migration
+`20260823_0003` และ PostgreSQL integration/concurrency tests ผ่านก่อน
 
 ## Phase 6 — Paper Trading
 
@@ -111,8 +118,9 @@ empirical gate ต้องรัน approved historical XAUUSD/Forex dataset �
 
 ## เอกสารที่จะจัดทำต่อ
 
-Phase 0–4 engineering implementation เสร็จตาม roadmap แล้ว งานวิจัยถัดไปคือรัน Phase 4
-กับ approved historical market dataset และ cost stress โดยห้ามเริ่ม Paper/Live จาก golden fixture
+Phase 0–5 engineering implementation เสร็จตาม roadmap แล้ว โดย Phase 5 ต้องผ่าน PostgreSQL CI
+ก่อน merge งานวิจัย Phase 4 ยังต้องรัน approved historical market dataset และ cost stress และห้าม
+เริ่ม Paper/Live จาก golden fixture
 
 
 ## Documentation Progress

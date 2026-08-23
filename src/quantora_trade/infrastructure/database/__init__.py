@@ -1,5 +1,9 @@
 """PostgreSQL persistence adapter foundation."""
 
+from quantora_trade.infrastructure.database.kill_switch_models import (
+    KillSwitchEventModel,
+    KillSwitchStateModel,
+)
 from quantora_trade.infrastructure.database.market_data_models import (
     BrokerModel,
     CandleModel,
@@ -14,6 +18,8 @@ __all__ = [
     "BrokerModel",
     "CandleModel",
     "InstrumentModel",
+    "KillSwitchEventModel",
+    "KillSwitchStateModel",
     "MarketDataIssueModel",
     "RawMarketRateModel",
 ]
