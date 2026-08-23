@@ -1,8 +1,10 @@
 """Fail-closed boundary between persisted risk approval and a broker port."""
 
+import json
 from dataclasses import dataclass
 from datetime import UTC
 from enum import StrEnum
+from hashlib import sha256
 from typing import Protocol
 from uuid import UUID
 
@@ -44,6 +46,7 @@ class SubmissionClaimState(StrEnum):
     ACQUIRED = "acquired"
     COMPLETED = "completed"
     IN_FLIGHT = "in_flight"
+    UNKNOWN = "unknown"
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,11 +62,36 @@ class SubmissionClaim:
 class SubmissionJournal(Protocol):
     """Durable claims prevent concurrent and crash-recovery double submission."""
 
-    def claim(self, idempotency_key: str) -> SubmissionClaim: ...
+    def claim(self, idempotency_key: str, request_hash: str) -> SubmissionClaim: ...
 
     def complete(self, idempotency_key: str, result: BrokerOrderResult) -> None: ...
 
     def abandon(self, idempotency_key: str) -> None: ...
+
+
+class SubmissionRecoveryLookup(Protocol):
+    """Deterministic broker lookup; it must never create or resubmit an order."""
+
+    def lookup(self, idempotency_key: str, request_hash: str) -> BrokerOrderResult | None: ...
+
+
+def submission_request_hash(intent: ApprovedOrderIntent) -> str:
+    """Return a stable hash binding an idempotency key to the exact request."""
+
+    payload = {
+        "created_at": intent.created_at.isoformat(),
+        "id": str(intent.id),
+        "idempotency_key": intent.idempotency_key,
+        "mode": intent.mode.value,
+        "risk_assessment_id": str(intent.risk_assessment_id),
+        "side": intent.side.value,
+        "stop_loss": str(intent.stop_loss),
+        "symbol": intent.symbol,
+        "take_profit": None if intent.take_profit is None else str(intent.take_profit),
+        "volume": str(intent.volume),
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return sha256(canonical.encode()).hexdigest()
 
 
 class OrderSubmissionService:
@@ -126,12 +154,14 @@ class OrderSubmissionService:
         if intent != expected:
             raise PermissionError("order intent does not match approval evidence")
 
-        claim = self._journal.claim(intent.idempotency_key)
+        claim = self._journal.claim(intent.idempotency_key, submission_request_hash(intent))
         if claim.state is SubmissionClaimState.COMPLETED:
             assert claim.result is not None
             return claim.result
         if claim.state is SubmissionClaimState.IN_FLIGHT:
             raise RuntimeError("submission outcome is pending reconciliation")
+        if claim.state is SubmissionClaimState.UNKNOWN:
+            raise RuntimeError("submission outcome is unknown and requires reconciliation")
 
         query = KillSwitchQuery(
             account=context.account,

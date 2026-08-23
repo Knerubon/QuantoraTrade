@@ -139,7 +139,7 @@ class AppSettings(BaseSettings):
     live_trading_enabled: bool = False
 
     @model_validator(mode="after")
-    def live_mode_requires_explicit_enablement(self) -> "AppSettings":
-        if self.trading_mode is TradingMode.LIVE and not self.live_trading_enabled:
-            raise ValueError("live mode requires QUANTORA_LIVE_TRADING_ENABLED=true")
+    def live_mode_is_closed_for_current_phase(self) -> "AppSettings":
+        if self.trading_mode is TradingMode.LIVE:
+            raise ValueError("live mode is unavailable in the current phase")
         return self

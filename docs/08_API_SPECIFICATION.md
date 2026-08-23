@@ -22,7 +22,7 @@ API **ไม่ใช่ช่องทางข้าม Trading Logic** แล
 ## 3. API Principles
 
 - backward-compatible ภายใน major version
-- ทุก response มี `request_id`
+- ทุก response มี `X-Request-ID`; command record มี `request_id` ใน body ด้วย
 - mutation ที่ retry ได้ต้องรองรับ `Idempotency-Key`
 - command response ใช้สถานะ accepted/pending เมื่อทำงาน asynchronous
 - pagination ใช้ cursor
@@ -30,6 +30,14 @@ API **ไม่ใช่ช่องทางข้าม Trading Logic** แล
 - ห้ามเปิดเผย secret, broker credential หรือ raw sensitive payload
 - Live Mode ใช้สิทธิ์และ approval สูงกว่า Paper Mode
 - API process ห้ามรัน Trading Loop ภายใน request thread
+
+### Phase 6 compatibility note
+
+- เส้นทางตามสัญญาหลักอยู่ใต้ `/api/v1`; เส้นทางเดิมที่ไม่มี prefix ยังคงเป็น alias ชั่วคราวเพื่อไม่ทำให้ client ระหว่างพัฒนาเสียหาย
+- ทุก response ส่ง `X-Request-ID` (สะท้อนค่าจาก client หรือสร้างใหม่) และ `X-API-Version: 1`
+- `POST /system/start` และ `POST /system/stop` ตรวจ scope `system:operate`; read endpoints ตรวจ `system:read`
+- `GET /events/stream` เป็น authenticated SSE แบบ bounded batch: resume ด้วย `Last-Event-ID`, ส่ง heartbeat เมื่อไม่มี event แล้วให้ client reconnect แทนการค้าง request thread แบบไม่มีกำหนด
+- `/trades` และ `/report` เป็น read-only เท่านั้น และไม่มี endpoint สำหรับส่ง order หรือเปิด Live
 
 ## 4. Base URLs
 
@@ -167,20 +175,11 @@ Error message ห้ามเปิดเผย stack trace, SQL, path ภาย
 
 ตรวจว่า API process ทำงาน ไม่ตรวจ dependency
 
-Response `200`:
+Response `200` (Phase 6 implementation คืน strict response model โดยตรง; envelope ในหัวข้อ 7
+เป็น target contract สำหรับ resource APIs ที่ยังไม่ได้ implement):
 
 ```json
-{
-  "data": {
-    "status": "alive",
-    "service": "quantora-api",
-    "version": "0.1.0"
-  },
-  "meta": {
-    "request_id": "req_01J...",
-    "generated_at": "2026-08-15T15:00:00Z"
-  }
-}
+{"status": "alive"}
 ```
 
 ### `GET /health/ready`
@@ -221,7 +220,7 @@ Request:
 {
   "mode": "paper",
   "symbols": ["XAUUSD", "EURUSD"],
-  "strategy_codes": ["trend-pullback"],
+  "strategy_id": "trend-pullback",
   "reason": "Start paper validation run"
 }
 ```
@@ -231,24 +230,18 @@ Rules:
 - MVP endpoint อนุญาต `paper` เท่านั้น
 - `live` ต้องใช้ Live Activation Workflow
 - config และ dependency ต้องผ่าน preflight
+- canonical symbol ทุกตัวต้อง resolve ได้เพียง specification เดียวจาก persisted authoritative source และ specification ต้อง active/non-stale
+- ห้ามอนุมาน quote currency จากชื่อ symbol หรือทิ้ง suffix เอง; unknown, suffix mismatch, ambiguous และ stale specification คืน `422`
+- resolved `specification_id`, `specification_hash` และ `quote_currency` ถูกตรึงไว้ใน durable command payload เพื่อ audit/replay
+- symbol ทั้งหมดต้องมี quote currency เดียวกันใน Phase 6; mixed quote currency ถูกปฏิเสธจนกว่าจะมี trusted FX conversion service
+- ถ้าไม่ได้ configure authoritative symbol resolver ให้ fail closed ด้วย `503`; คำสั่ง stop ไม่ต้อง resolve symbol เพื่อไม่ขวางการหยุดระบบ
 - ถ้า worker ทำงานด้วย config เดิมแล้วให้คืนผลเดิม
 - ถ้า state ขัดแย้งให้คืน `409 SYSTEM_STATE_CONFLICT`
 
-Response `202`:
+Response `202` เป็น strict command record โดยตรง (ไม่มี secret/idempotency hash):
 
 ```json
-{
-  "data": {
-    "command_id": "cmd_01J...",
-    "status": "accepted",
-    "target_state": "running",
-    "mode": "paper"
-  },
-  "meta": {
-    "request_id": "req_01J...",
-    "generated_at": "2026-08-15T15:00:00Z"
-  }
-}
+{"id": "9ee5b81f-65c1-47ce-9756-ae55b99af987", "request_id": "req_01J...", "action": "start", "mode": "paper", "symbols": ["XAUUSD", "EURUSD"], "strategy_id": "trend-pullback", "reason": "Start paper validation run", "actor": "operator-id", "status": "queued", "created_at": "2026-08-15T15:00:00Z", "updated_at": "2026-08-15T15:00:00Z", "replayed": false}
 ```
 
 ### `POST /system/stop`
@@ -260,20 +253,20 @@ Request:
 
 ```json
 {
-  "behavior": "stop_new_entries",
+  "mode": "paper",
+  "symbols": ["XAUUSD", "EURUSD"],
+  "strategy_id": "trend-pullback",
   "reason": "Scheduled maintenance"
 }
 ```
 
-Behaviors:
-
-- `stop_new_entries`: หยุดคำสั่งใหม่ แต่ยังดูแลสถานะเปิด
-- `graceful`: หยุด loop หลังจัดการงานค้าง
-- `emergency`: ใช้ Kill Switch policy
+Phase 6 รองรับ controlled stop แบบเดียว: หยุด workload/worker โดย `symbols` และ
+`strategy_id` ระบุ target configuration สำหรับ audit. ยังไม่รองรับ field `behavior`;
+emergency เป็น Kill Switch policy แยกต่างหาก
 
 การ Stop ไม่ควรปิด position โดยอัตโนมัติ เว้นแต่ request และ policy ระบุชัดเจน
 
-### `GET /commands/{command_id}`
+### `GET /system/commands/{command_id}`
 
 ดูสถานะ asynchronous command:
 
@@ -654,28 +647,16 @@ MVP ไม่มี generic endpoint สำหรับแก้ config แบ�
 
 ### `GET /events`
 
-Filters:
+Phase 6 คืน persisted accounting events จาก fill journal เท่านั้น โดยใช้ integer `cursor`/`Last-Event-ID`
+และ `limit`; event kind ที่ PostgreSQL repository ยืนยันได้ในระยะนี้คือ `pnl` พร้อม
+`PAPER_FILL_ACCOUNTED`. ชนิด DTO อื่นสงวนไว้สำหรับ source ที่จะ persist ภายหลังและห้ามสร้าง
+event จำลองเพื่อให้ dashboard ดูครบ
 
-- severity
-- component
-- event_code
-- symbol
-- correlation_id
-- from/to
+### `GET /events/stream`
 
-### `GET /stream/events`
-
-SSE endpoint สำหรับ:
-
-- system status
-- signals
-- decisions
-- risk rejections
-- order updates
-- position updates
-- alerts
-
-Client ต้อง reconnect ด้วย `Last-Event-ID`; server ไม่รับประกันว่า SSE เป็น System of Record ให้ query REST เพื่อ reconcile
+SSE แบบ bounded batch จาก source เดียวกับ `GET /events`; client reconnect ด้วย
+`Last-Event-ID`. เมื่อไม่มี event จะได้ heartbeat comment แล้ว connection จบ. SSE ไม่ใช่
+System of Record ให้ query REST เพื่อ reconcile
 
 ## 22. Pagination
 
