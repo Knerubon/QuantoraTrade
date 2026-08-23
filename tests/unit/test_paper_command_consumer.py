@@ -94,9 +94,12 @@ class Workload:
             raise RuntimeError("boom")
         self.started = config
 
+    @property
+    def active_generation(self) -> UUID | None:
+        return self.generation
+
     def stop(self, *, fence_token: UUID) -> None:
-        assert fence_token != TOKEN
-        self.generation = fence_token
+        assert fence_token == self.generation
         if self.fail_stop:
             raise RuntimeError("stop failed")
         self.stopped = True

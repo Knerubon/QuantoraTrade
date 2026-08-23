@@ -77,6 +77,12 @@ class PaperWorkloadHost:
     def running(self) -> bool:
         return self._generation is not None
 
+    @property
+    def active_generation(self) -> UUID | None:
+        """Return the locally held generation; each use is still durably renewed."""
+
+        return self._generation
+
     def start(self, config: PaperWorkerConfig, *, fence_token: UUID) -> None:
         if self._generation == fence_token and self._config == config:
             self._renew(fence_token)
@@ -96,6 +102,8 @@ class PaperWorkloadHost:
             return
         if not isinstance(fence_token, UUID):
             raise TypeError("fence_token must be a UUID")
+        if fence_token != self._generation:
+            raise PermissionError("PAPER workload generation is fenced")
         generation = self._generation
         self._leases.release_workload_lease(owner=self._owner, generation=generation)
         self._generation = None

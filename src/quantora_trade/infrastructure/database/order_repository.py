@@ -145,7 +145,9 @@ class PostgresPaperOrderRepository:
             contract_multiplier=request.instrument.contract_multiplier,
             mode=request.mode.value,
             symbol=request.symbol,
-            side=request.side.value,
+            # PostgreSQL stores execution evidence in canonical lower-case form;
+            # the public domain enum remains upper-case for signal compatibility.
+            side=request.side.value.lower(),
             requested_volume=request.volume,
             point=request.instrument.point,
             expires_at=request.expires_at,
@@ -195,7 +197,7 @@ class PostgresPaperOrderRepository:
             idempotency_key=row.idempotency_key,
             mode=TradingMode(row.mode),
             symbol=row.symbol,
-            side=Action(row.side),
+            side=Action(row.side.upper()),
             volume=row.requested_volume,
             instrument=InstrumentExecutionSnapshot(
                 instrument_id=row.instrument_id,

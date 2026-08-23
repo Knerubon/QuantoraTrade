@@ -255,7 +255,7 @@ def clean_phase6_tables() -> Iterator[None]:
 
 def approved_evidence(
     key: str = "phase6-host-xau-1",
-) -> tuple[Decision, RiskAssessment, ApprovedOrderIntent]:
+) -> tuple[Decision, RiskAssessment]:
     decision = Decision(
         id=uuid4(),
         signal_id=uuid4(),
@@ -279,16 +279,30 @@ def approved_evidence(
         take_profit=Decimal("2520"),
         created_at=NOW,
     )
+    # The production builder owns the canonical hash-derived key. ``key`` only
+    # documents the scenario name and guards accidental fixture reuse.
+    assert key
+    return decision, assessment
+
+
+def authoritative_intent(
+    evidence: PostgresApprovalEvidenceRepository,
+    assessment_id: UUID,
+) -> ApprovedOrderIntent:
+    """Build from the exact durable evidence used by submission verification."""
+
+    assessment = evidence.assessment(assessment_id)
+    assert assessment is not None
+    decision = evidence.decision(assessment.decision_id)
+    assert decision is not None
     intent = build_approved_order_intent(
         decision=decision,
         assessment=assessment,
         mode=TradingMode.PAPER,
-        created_at=NOW,
+        created_at=assessment.created_at,
     )
-    # The production builder owns the canonical hash-derived key.  ``key`` only
-    # documents the scenario name and guards accidental fixture reuse.
-    assert key and intent.idempotency_key
-    return decision, assessment, intent
+    assert intent.idempotency_key == f"quantora:{intent.id}"
+    return intent
 
 
 def auth_headers(request_id: str, key: str) -> dict[str, str]:
@@ -377,13 +391,14 @@ def dashboard(clock: Clock) -> DashboardService:
 
 def test_authenticated_api_to_real_paper_runner_is_durable_and_restart_idempotent() -> None:
     clock = Clock()
-    decision, assessment, intent = approved_evidence()
+    decision, assessment = approved_evidence()
     evidence = PostgresApprovalEvidenceRepository(SessionFactory)
     evidence.persist(
         decision,
         assessment,
         SubmissionContext("paper-primary", "METAL", "trend-v1"),
     )
+    intent = authoritative_intent(evidence, assessment.id)
     queue = PostgresSystemCommandRepository(SessionFactory, now=clock.now)
     workers = PostgresPaperWorkerRepository(SessionFactory, now=clock.now)
     host = build_host(intent, clock)
@@ -452,7 +467,7 @@ def test_authenticated_api_to_real_paper_runner_is_durable_and_restart_idempoten
     # same fill idempotently instead of manufacturing another order or ledger row.
     clock.advance(timedelta(seconds=31))
     restarted_host = build_host(intent, clock)
-    restart_token = uuid4()
+    restart_token = start_generation
     config = workers.current().config
     assert config is not None
     restarted_host.start(config, fence_token=restart_token)
@@ -486,13 +501,14 @@ def test_authenticated_api_to_real_paper_runner_is_durable_and_restart_idempoten
 
 def test_fail_closed_modes_mixed_quote_and_failed_stop_never_poll() -> None:
     clock = Clock()
-    decision, assessment, intent = approved_evidence("phase6-negative")
+    decision, assessment = approved_evidence("phase6-negative")
     evidence = PostgresApprovalEvidenceRepository(SessionFactory)
     evidence.persist(
         decision,
         assessment,
         SubmissionContext("paper-primary", "METAL", "trend-v1"),
     )
+    intent = authoritative_intent(evidence, assessment.id)
     queue = PostgresSystemCommandRepository(SessionFactory, now=clock.now)
     workers = PostgresPaperWorkerRepository(SessionFactory, now=clock.now)
     client = TestClient(

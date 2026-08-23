@@ -65,6 +65,9 @@ class PaperWorkloadLifecycle(Protocol):
 
     def start(self, config: PaperWorkerConfig, *, fence_token: UUID) -> None: ...
 
+    @property
+    def active_generation(self) -> UUID | None: ...
+
     def stop(self, *, fence_token: UUID) -> None: ...
 
 
@@ -167,7 +170,10 @@ class PaperCommandConsumer:
                 raise RuntimeError("paper workload lifecycle is not configured")
             self._control.stop(f"{base_id}:stop")
             try:
-                self._workload.stop(fence_token=fence_token)
+                active_generation = self._workload.active_generation
+                if active_generation is None:
+                    raise RuntimeError("paper workload has no active generation")
+                self._workload.stop(fence_token=active_generation)
             except Exception:
                 self._control.halt(f"{base_id}:stop-failed", "workload stop failed")
                 raise

@@ -111,9 +111,24 @@ def upgrade() -> None:
                 OR OLD.claimed_at IS DISTINCT FROM NEW.claimed_at THEN
                 RAISE EXCEPTION 'submission identity is immutable' USING ERRCODE = '55000';
             END IF;
-            IF NEW.fencing_token < OLD.fencing_token
-                OR (NEW.claim_owner IS DISTINCT FROM OLD.claim_owner
-                    AND NEW.fencing_token <> OLD.fencing_token + 1) THEN
+            IF NEW.claim_owner IS DISTINCT FROM OLD.claim_owner THEN
+                -- A new worker may take ownership only by fencing an expired
+                -- in-flight lease.  The transition timestamp is supplied by
+                -- the same trusted repository clock that writes the lease;
+                -- this also keeps deterministic recovery tests independent of
+                -- the database server clock.
+                IF OLD.state <> 'in_flight'
+                    OR NEW.state <> 'in_flight'
+                    OR OLD.lease_expires_at > NEW.updated_at
+                    OR NEW.lease_expires_at <= NEW.updated_at
+                    OR NEW.fencing_token <> OLD.fencing_token + 1
+                    OR NEW.external_order_id IS DISTINCT FROM OLD.external_order_id
+                    OR NEW.result_metadata IS DISTINCT FROM OLD.result_metadata
+                    OR NEW.recovery_metadata IS DISTINCT FROM OLD.recovery_metadata THEN
+                    RAISE EXCEPTION 'invalid submission recovery transition'
+                        USING ERRCODE = '55000';
+                END IF;
+            ELSIF NEW.fencing_token <> OLD.fencing_token THEN
                 RAISE EXCEPTION 'invalid submission fencing transition' USING ERRCODE = '55000';
             END IF;
             IF OLD.state = 'completed'

@@ -108,7 +108,9 @@ def test_host_is_explicit_bounded_idempotent_and_paper_only() -> None:
     with pytest.raises(RuntimeError, match="another generation"):
         host.start(config(), fence_token=STALE)
 
-    host.stop(fence_token=STALE)
+    with pytest.raises(PermissionError, match="fenced"):
+        host.stop(fence_token=STALE)
+    host.stop(fence_token=TOKEN)
     host.stop(fence_token=STALE)
     assert host.running is False
 

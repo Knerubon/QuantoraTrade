@@ -164,8 +164,8 @@ def test_fill_projection_uses_execution_snapshot_after_specification_mutation() 
     with SessionFactory() as session:
         evidence = session.execute(
             text(
-                "SELECT quote_currency, contract_multiplier, specification_hash "
+                "SELECT side, quote_currency, contract_multiplier, specification_hash "
                 "FROM quantora.paper_accounting_events"
             )
         ).one()
-        assert evidence == ("USD", Decimal("100"), "a" * 64)
+        assert evidence == ("buy", "USD", Decimal("100"), "a" * 64)

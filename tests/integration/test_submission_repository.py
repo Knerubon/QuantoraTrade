@@ -153,8 +153,67 @@ def test_expired_submission_is_fenced_and_recovered_by_lookup_without_resubmit()
     )
     assert recovered.state is SubmissionClaimState.COMPLETED
     assert lookup.calls == 1
+    with SessionFactory() as session:
+        owner_after, token_after = session.execute(
+            text(
+                "SELECT claim_owner, fencing_token FROM quantora.submission_journal "
+                "WHERE idempotency_key = 'crash'"
+            )
+        ).one()
+    assert token_after == 2
     with pytest.raises(ValueError, match="claim owner"):
         owner.complete("crash", Result("duplicate"))
+    with SessionFactory() as session:
+        persisted_owner, persisted_token = session.execute(
+            text(
+                "SELECT claim_owner, fencing_token FROM quantora.submission_journal "
+                "WHERE idempotency_key = 'crash'"
+            )
+        ).one()
+    assert (persisted_owner, persisted_token) == (owner_after, token_after)
+
+
+def test_unexpired_or_non_monotonic_recovery_is_rejected_by_database() -> None:
+    journal = PostgresSubmissionJournal(
+        SessionFactory, now=lambda: NOW, lease_duration=timedelta(seconds=10)
+    )
+    journal.claim("recovery-guard", "9" * 64)
+    with (
+        SessionFactory() as session,
+        session.begin(),
+        pytest.raises(DBAPIError, match="invalid submission recovery transition"),
+    ):
+        session.execute(
+            text(
+                "UPDATE quantora.submission_journal "
+                "SET claim_owner = :owner, fencing_token = fencing_token + 1, "
+                "lease_expires_at = :new_lease, updated_at = :before_expiry "
+                "WHERE idempotency_key = 'recovery-guard'"
+            ),
+            {
+                "owner": uuid4(),
+                "new_lease": NOW + timedelta(seconds=20),
+                "before_expiry": NOW + timedelta(seconds=5),
+            },
+        )
+    with (
+        SessionFactory() as session,
+        session.begin(),
+        pytest.raises(DBAPIError, match="invalid submission recovery transition"),
+    ):
+        session.execute(
+            text(
+                "UPDATE quantora.submission_journal "
+                "SET claim_owner = :owner, fencing_token = fencing_token + 2, "
+                "lease_expires_at = :new_lease, updated_at = :after_expiry "
+                "WHERE idempotency_key = 'recovery-guard'"
+            ),
+            {
+                "owner": uuid4(),
+                "new_lease": NOW + timedelta(seconds=30),
+                "after_expiry": NOW + timedelta(seconds=11),
+            },
+        )
 
 
 def test_expired_submission_without_lookup_result_becomes_unknown() -> None:

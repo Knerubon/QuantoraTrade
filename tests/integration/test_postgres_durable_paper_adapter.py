@@ -46,7 +46,9 @@ def clean_tables() -> None:
     with SessionFactory() as session, session.begin():
         session.execute(
             text(
-                "TRUNCATE quantora.paper_fills, quantora.paper_order_events, quantora.paper_orders"
+                "TRUNCATE quantora.paper_mark_events, quantora.paper_accounting_events, "
+                "quantora.paper_positions, quantora.paper_accounts, quantora.paper_fills, "
+                "quantora.paper_order_events, quantora.paper_orders RESTART IDENTITY"
             )
         )
 
