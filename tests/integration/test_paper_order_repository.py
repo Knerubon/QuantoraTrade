@@ -134,7 +134,10 @@ def test_database_rejects_evidence_mutation_and_fill_overrun() -> None:
             text("UPDATE quantora.paper_fills SET volume = 0.5 WHERE order_id = :id"),
             {"id": value.id},
         )
-    with SessionFactory() as session, session.begin(), pytest.raises(DBAPIError):
+    # The aggregate validator is intentionally deferred so an order, its events,
+    # and fills can be written atomically in any order.  Keep the raises context
+    # outside the transaction so it observes PostgreSQL's commit-time check.
+    with pytest.raises(DBAPIError), SessionFactory() as session, session.begin():
         session.execute(
             text(
                 "INSERT INTO quantora.paper_fills "
@@ -149,7 +152,7 @@ def test_database_rejects_illegal_and_terminal_order_transitions() -> None:
     repository = PostgresPaperOrderRepository(SessionFactory)
     initial = created_order()
     repository.persist(initial)
-    with SessionFactory() as session, session.begin(), pytest.raises(DBAPIError):
+    with pytest.raises(DBAPIError), SessionFactory() as session, session.begin():
         session.execute(
             text(
                 "INSERT INTO quantora.paper_order_events "
@@ -169,7 +172,7 @@ def test_database_rejects_illegal_and_terminal_order_transitions() -> None:
         events=(*initial.events, OrderEvent(2, OrderStatus.REJECTED, NOW, "REJECTED")),
     )
     repository.persist(rejected, expected_sequence=1)
-    with SessionFactory() as session, session.begin(), pytest.raises(DBAPIError):
+    with pytest.raises(DBAPIError), SessionFactory() as session, session.begin():
         session.execute(
             text(
                 "INSERT INTO quantora.paper_order_events "

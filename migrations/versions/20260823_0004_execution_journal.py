@@ -113,14 +113,12 @@ def upgrade() -> None:
             END IF;
             IF NEW.claim_owner IS DISTINCT FROM OLD.claim_owner THEN
                 -- A new worker may take ownership only by fencing an expired
-                -- in-flight lease.  The transition timestamp is supplied by
-                -- the same trusted repository clock that writes the lease;
-                -- this also keeps deterministic recovery tests independent of
-                -- the database server clock.
+                -- in-flight lease.  Expiry is decided by PostgreSQL so a
+                -- caller cannot forge NEW.updated_at to steal a live claim.
                 IF OLD.state <> 'in_flight'
                     OR NEW.state <> 'in_flight'
-                    OR OLD.lease_expires_at > NEW.updated_at
-                    OR NEW.lease_expires_at <= NEW.updated_at
+                    OR OLD.lease_expires_at > statement_timestamp()
+                    OR NEW.lease_expires_at <= statement_timestamp()
                     OR NEW.fencing_token <> OLD.fencing_token + 1
                     OR NEW.external_order_id IS DISTINCT FROM OLD.external_order_id
                     OR NEW.result_metadata IS DISTINCT FROM OLD.result_metadata
@@ -133,7 +131,9 @@ def upgrade() -> None:
             END IF;
             IF OLD.state = 'completed'
                 OR (OLD.state = 'unknown' AND NEW.state <> 'completed')
-                OR (OLD.state = 'in_flight' AND NEW.state NOT IN ('unknown', 'completed')) THEN
+                OR (OLD.state = 'in_flight'
+                    AND NEW.state NOT IN ('unknown', 'completed')
+                    AND NEW.claim_owner IS NOT DISTINCT FROM OLD.claim_owner) THEN
                 RAISE EXCEPTION 'invalid submission state transition' USING ERRCODE = '55000';
             END IF;
             RETURN NEW;

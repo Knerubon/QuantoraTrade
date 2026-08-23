@@ -30,6 +30,11 @@ SessionFactory = sessionmaker(engine, expire_on_commit=False)
 NOW = datetime(2026, 8, 23, 6, 0, tzinfo=UTC)
 
 
+def database_now() -> datetime:
+    with SessionFactory() as session:
+        return session.execute(text("SELECT clock_timestamp()")).scalar_one()
+
+
 @dataclass(frozen=True)
 class Result:
     external_order_id: str
@@ -141,12 +146,12 @@ def test_unknown_requires_explicit_reconciliation_and_never_reacquires() -> None
 
 
 def test_expired_submission_is_fenced_and_recovered_by_lookup_without_resubmit() -> None:
-    clock = MutableClock(NOW)
+    clock = MutableClock(database_now() - timedelta(seconds=20))
     owner = PostgresSubmissionJournal(
         SessionFactory, now=clock, lease_duration=timedelta(seconds=10)
     )
     assert owner.claim("crash", "f" * 64).state is SubmissionClaimState.ACQUIRED
-    clock.advance(timedelta(seconds=11))
+    clock.advance(timedelta(seconds=20))
     lookup = Lookup(Result("paper-recovered"))
     recovered = PostgresSubmissionJournal(SessionFactory, now=clock).recover_expired(
         "crash", "f" * 64, lookup=lookup, recovery_metadata={"worker": "recovery-1"}
@@ -174,8 +179,9 @@ def test_expired_submission_is_fenced_and_recovered_by_lookup_without_resubmit()
 
 
 def test_unexpired_or_non_monotonic_recovery_is_rejected_by_database() -> None:
+    db_now = database_now()
     journal = PostgresSubmissionJournal(
-        SessionFactory, now=lambda: NOW, lease_duration=timedelta(seconds=10)
+        SessionFactory, now=lambda: db_now, lease_duration=timedelta(seconds=10)
     )
     journal.claim("recovery-guard", "9" * 64)
     with (
@@ -192,10 +198,17 @@ def test_unexpired_or_non_monotonic_recovery_is_rejected_by_database() -> None:
             ),
             {
                 "owner": uuid4(),
-                "new_lease": NOW + timedelta(seconds=20),
-                "before_expiry": NOW + timedelta(seconds=5),
+                "new_lease": db_now + timedelta(seconds=20),
+                # Forging a future transition timestamp must not permit an
+                # early takeover; the trigger trusts only PostgreSQL time.
+                "before_expiry": db_now + timedelta(seconds=11),
             },
         )
+    expired_now = database_now() - timedelta(seconds=20)
+    expired = PostgresSubmissionJournal(
+        SessionFactory, now=lambda: expired_now, lease_duration=timedelta(seconds=10)
+    )
+    expired.claim("recovery-token-guard", "8" * 64)
     with (
         SessionFactory() as session,
         session.begin(),
@@ -206,18 +219,18 @@ def test_unexpired_or_non_monotonic_recovery_is_rejected_by_database() -> None:
                 "UPDATE quantora.submission_journal "
                 "SET claim_owner = :owner, fencing_token = fencing_token + 2, "
                 "lease_expires_at = :new_lease, updated_at = :after_expiry "
-                "WHERE idempotency_key = 'recovery-guard'"
+                "WHERE idempotency_key = 'recovery-token-guard'"
             ),
             {
                 "owner": uuid4(),
-                "new_lease": NOW + timedelta(seconds=30),
-                "after_expiry": NOW + timedelta(seconds=11),
+                "new_lease": database_now() + timedelta(seconds=30),
+                "after_expiry": database_now(),
             },
         )
 
 
 def test_expired_submission_without_lookup_result_becomes_unknown() -> None:
-    clock = MutableClock(NOW)
+    clock = MutableClock(database_now() - timedelta(seconds=2))
     PostgresSubmissionJournal(SessionFactory, now=clock, lease_duration=timedelta(seconds=1)).claim(
         "missing", "1" * 64
     )

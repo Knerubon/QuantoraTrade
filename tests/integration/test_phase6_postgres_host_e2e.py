@@ -164,9 +164,12 @@ class OneIntent:
 
 
 class Market:
+    def __init__(self, clock: Clock) -> None:
+        self._clock = clock
+
     def current(self, *, symbol: str, timeframe: str) -> CurrentMarketInput:
         assert timeframe == "M5"
-        return CurrentMarketInput(symbol, NOW)
+        return CurrentMarketInput(symbol, self._clock.now())
 
 
 class Inputs:
@@ -360,7 +363,7 @@ def build_host(intent: ApprovedOrderIntent, clock: Clock) -> PaperWorkloadHost:
     )
     return PaperWorkloadHost(
         runner=components.runner,
-        market=Market(),
+        market=Market(clock),
         leases=PostgresPaperWorkerRepository(SessionFactory, now=clock.now),
         owner="paper-host-1",
         lease_duration=timedelta(seconds=30),
@@ -547,6 +550,10 @@ def test_fail_closed_modes_mixed_quote_and_failed_stop_never_poll() -> None:
 
     class StopFails:
         polls = 0
+
+        @property
+        def active_generation(self) -> UUID | None:
+            return host.active_generation
 
         def start(self, config: object, *, fence_token: UUID) -> None:
             host.start(config, fence_token=fence_token)  # type: ignore[arg-type]
