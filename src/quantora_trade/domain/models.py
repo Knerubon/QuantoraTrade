@@ -5,7 +5,13 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from quantora_trade.domain.enums import Action, AssetClass, SignalReasonCode, TradingMode
+from quantora_trade.domain.enums import (
+    Action,
+    AssetClass,
+    RiskRejectionCode,
+    SignalReasonCode,
+    TradingMode,
+)
 
 
 def _require_utc(value: datetime, field_name: str) -> None:
@@ -183,8 +189,14 @@ class Decision:
     expires_at: datetime
 
     def __post_init__(self) -> None:
+        if self.symbol != self.symbol.strip().upper():
+            raise ValueError("decision symbol must be canonical uppercase")
+        if not self.timeframe.strip() or not self.policy_version.strip():
+            raise ValueError("decision timeframe and policy_version must not be empty")
+        if not isinstance(self.action, Action):
+            raise ValueError("decision action must be BUY, SELL, or HOLD")
         _require_utc(self.expires_at, "expires_at")
-        if not Decimal("0") <= self.confidence <= Decimal("1"):
+        if not self.confidence.is_finite() or not Decimal("0") <= self.confidence <= Decimal("1"):
             raise ValueError("confidence must be between zero and one")
 
 
@@ -205,7 +217,12 @@ class RiskAssessment:
 
     def __post_init__(self) -> None:
         _require_utc(self.created_at, "created_at")
-        if self.risk_amount < Decimal("0") or self.volume < Decimal("0"):
+        if (
+            not self.risk_amount.is_finite()
+            or not self.volume.is_finite()
+            or self.risk_amount < Decimal("0")
+            or self.volume < Decimal("0")
+        ):
             raise ValueError("risk_amount and volume must be non-negative")
         if self.approved and (self.volume <= Decimal("0") or self.stop_loss is None):
             raise ValueError("approved assessment requires volume and stop_loss")
@@ -213,6 +230,12 @@ class RiskAssessment:
             raise ValueError("approved assessment cannot contain rejection codes")
         if not self.approved and not self.rejection_codes:
             raise ValueError("rejected assessment requires rejection codes")
+        if tuple(sorted(set(self.rejection_codes))) != self.rejection_codes:
+            raise ValueError("rejection codes must be unique and sorted")
+        try:
+            tuple(RiskRejectionCode(code) for code in self.rejection_codes)
+        except ValueError as error:
+            raise ValueError("assessment contains an unknown rejection code") from error
 
 
 @dataclass(frozen=True, slots=True)

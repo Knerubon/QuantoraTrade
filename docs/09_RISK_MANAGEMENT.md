@@ -6,6 +6,16 @@ Risk Management ของ QuantoraTrade เป็นด่านบังคั�
 
 Risk Engine ต้องเป็น deterministic, ทำซ้ำได้ และทำงานได้โดยไม่พึ่ง AI เมื่อข้อมูลไม่ครบหรือคำนวณไม่ได้ให้ **ปฏิเสธคำสั่ง** ตามหลัก fail closed
 
+## Implementation Status
+
+Phase 5 engineering implementation ครอบคลุม Decision Engine, cost-aware position sizing,
+SL/TP และ bounded exit policy, daily loss/drawdown/cooldown, reconciled open/pending risk,
+multi-currency exposure, PostgreSQL-backed scoped Kill Switch และ authoritative submission gate
+
+ค่าที่ยังต้องปรับจากการทดลองรับผ่าน typed configuration และ policy ที่ไม่ครบจะ activate ไม่ได้
+Phase 5 submission boundary อนุญาตเฉพาะ Paper adapter ใน Phase 6 และปฏิเสธ Backtest/Live broker
+routing โดย Live ยังต้องผ่าน Phase 7 Security Review และ Owner Approval
+
 เอกสารนี้กำหนดโครงสร้างและสูตรสำหรับการทดสอบ ค่า limit จริงยังเป็น Open Decision จนกว่าจะผ่าน Backtest, Paper Trade และ Owner Approval
 
 ## 2. Non-Negotiable Rules

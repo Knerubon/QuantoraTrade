@@ -2,7 +2,8 @@
 
 แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ รองรับสินทรัพย์หลายประเภท โดยเริ่มทดสอบกับ **XAUUSD และตลาด Forex** และออกแบบให้ขยายตลาดได้โดยไม่ผูก logic กับสัญลักษณ์ใดสัญลักษณ์หนึ่ง
 
-> สถานะ: Phase 1–3 merge แล้ว และกำลังพัฒนา Phase 4 — AI Research
+> สถานะ: Phase 1–4 merge แล้ว และ Phase 5 — Risk & Decision engineering implementation
+> เสร็จใน development branch โดยรอ PostgreSQL CI ก่อน merge
 
 ## เป้าหมาย
 
@@ -119,6 +120,21 @@ no-skill prior ผลปัจจุบันยังไม่ชนะด้�
 ก่อนสรุปว่า model มี edge ต้องรัน approved historical market data พร้อม realistic cost stress และ
 final untouched holdout
 
+## Phase 5 — Risk & Decision (engineering implementation)
+
+Decision Engine เปลี่ยน Signal เป็น Decision แบบ deterministic โดยทำได้เพียงคงทิศทางเดิม
+หรือลดเป็น HOLD จาก policy ที่ versioned จากนั้น Risk Engine ตรวจ system/data readiness,
+spread/slippage, SL/TP หรือ bounded exit policy, daily loss, drawdown, cooldown, margin,
+open/pending monetary risk และ multi-currency portfolio exposure แบบ fail closed
+
+Position sizing ใช้ Decimal, broker tick/volume specification และรวม execution costs ในความเสี่ยง
+จริง ค่าควบคุมรับจาก typed FE/API configuration ได้ แต่ policy ที่กรอกไม่ครบเปิดใช้งานไม่ได้
+
+Kill Switch รองรับ global/account/asset/symbol/strategy/new-entry scopes เก็บ event และ current
+state ใน PostgreSQL แบบ atomic/append-only ส่วน submission boundary โหลด Decision และ
+RiskAssessment จาก authoritative evidence, ใช้ trusted clock, atomic idempotency claim และตรวจ
+Kill Switch อีกครั้งก่อน BrokerPort โดย Phase 5 ปฏิเสธ Live submission ทุกกรณี
+
 ## เอกสารโครงการ
 
 1. [Vision](docs/01_VISION.md)
@@ -137,8 +153,9 @@ final untouched holdout
 14. [Research Evidence Base](docs/14_RESEARCH_EVIDENCE_BASE.md)
 15. [AI Research Framework](docs/15_AI_RESEARCH_FRAMEWORK.md)
 
-Phase 0–4 engineering implementation ครบตาม roadmap แล้ว แต่ Phase 4 empirical gate ยังรอ
-approved historical XAUUSD/Forex evaluation และไม่อนุญาต Paper/Live Trading
+Phase 0–5 engineering implementation ครบตาม roadmap แล้ว โดย Phase 5 รอ PostgreSQL CI ก่อน
+merge ส่วน Phase 4 empirical gate ยังรอ approved historical XAUUSD/Forex evaluation และยังไม่
+อนุญาต Live Trading
 
 ## สถานะสำคัญ
 
