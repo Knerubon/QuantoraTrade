@@ -22,6 +22,7 @@ from quantora_trade.risk.submission import (
     SubmissionClaim,
     SubmissionClaimState,
     SubmissionContext,
+    submission_request_hash,
 )
 
 NOW = datetime(2026, 8, 23, 4, 0, tzinfo=UTC)
@@ -71,8 +72,9 @@ class Journal:
         self.claims: dict[str, Result | None] = {}
         self.lock = Lock()
 
-    def claim(self, key: str) -> SubmissionClaim:
+    def claim(self, key: str, request_hash: str) -> SubmissionClaim:
         with self.lock:
+            assert len(request_hash) == 64
             if key not in self.claims:
                 self.claims[key] = None
                 return SubmissionClaim(SubmissionClaimState.ACQUIRED)
@@ -158,6 +160,16 @@ def test_verified_submission_and_exact_replay_are_idempotent() -> None:
     assert broker.call_count == 1
 
 
+def test_request_hash_is_stable_and_binds_the_exact_intent() -> None:
+    _, _, evidence, _, _, _ = setup()
+    order = intent(evidence)
+    assert submission_request_hash(order) == submission_request_hash(order)
+    assert len(submission_request_hash(order)) == 64
+    assert submission_request_hash(replace(order, volume=Decimal("2"))) != submission_request_hash(
+        order
+    )
+
+
 @pytest.mark.parametrize(
     "forge",
     [
@@ -233,7 +245,10 @@ def test_every_authoritative_scope_blocks_submission(scope: KillSwitchScope) -> 
 def test_atomic_claim_blocks_concurrent_or_crash_retry() -> None:
     service, broker, evidence, _, _, journal = setup()
     order = intent(evidence)
-    assert journal.claim(order.idempotency_key).state is SubmissionClaimState.ACQUIRED
+    assert (
+        journal.claim(order.idempotency_key, submission_request_hash(order)).state
+        is SubmissionClaimState.ACQUIRED
+    )
     with pytest.raises(RuntimeError, match="reconciliation"):
         service.submit(order)
     assert broker.call_count == 0

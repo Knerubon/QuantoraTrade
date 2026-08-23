@@ -1,0 +1,51 @@
+{
+  "gates": {
+    "max_critical_incidents": 0,
+    "max_duplicate_orders": 0,
+    "max_unhealthy_samples": 0,
+    "max_unknown_orders": 0,
+    "require_complete_audit": true
+  },
+  "incidents": [],
+  "manifest": {
+    "code_version": "REPLACE_WITH_GIT_COMMIT",
+    "config_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "config_version": "REPLACE_WITH_IMMUTABLE_CONFIG_VERSION",
+    "data_version": "REPLACE_WITH_BROKER_SERVER_AND_UTC_RANGE",
+    "mode": "paper",
+    "owner": "REPLACE_WITH_OWNER",
+    "run_id": "REPLACE_WITH_UNIQUE_RUN_ID",
+    "sample_interval_seconds": 60,
+    "started_at": "2026-08-23T00:00:00+00:00",
+    "target_duration_seconds": 120
+  },
+  "samples": [
+    {
+      "audited_orders": 0,
+      "critical_events": 0,
+      "duplicate_orders": 0,
+      "health_ready": true,
+      "observed_at": "2026-08-23T00:00:00+00:00",
+      "orders_seen": 0,
+      "unknown_orders": 0
+    },
+    {
+      "audited_orders": 1,
+      "critical_events": 0,
+      "duplicate_orders": 0,
+      "health_ready": true,
+      "observed_at": "2026-08-23T00:01:00+00:00",
+      "orders_seen": 1,
+      "unknown_orders": 0
+    },
+    {
+      "audited_orders": 2,
+      "critical_events": 0,
+      "duplicate_orders": 0,
+      "health_ready": true,
+      "observed_at": "2026-08-23T00:02:00+00:00",
+      "orders_seen": 2,
+      "unknown_orders": 0
+    }
+  ]
+}

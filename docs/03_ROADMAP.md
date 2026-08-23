@@ -88,23 +88,36 @@ empirical gate ต้องรัน approved historical XAUUSD/Forex dataset �
 
 **Exit criteria:** ทุก order ผ่าน Risk Engine และทดสอบ rejection cases ครบ
 
-**สถานะ:** Phase 5 engineering implementation complete ใน branch
-`agent/phase-5-risk-decision` โดยรองรับ reconciled open/pending monetary risk,
+**สถานะ:** Phase 5 engineering implementation complete และ merge เข้า `main` ผ่าน PR #11
+พร้อม PostgreSQL CI #41 แล้ว โดยรองรับ reconciled open/pending monetary risk,
 multi-currency exposure ที่แปลงหน่วยอย่างชัดเจน, cost-aware sizing, PostgreSQL-backed
 Kill Switch และ authoritative approval evidence ก่อนเรียก BrokerPort ระบบปฏิเสธ LIVE
-และ BACKTEST ที่ submission boundary ใน Phase 5 การ merge ต้องรอ GitHub CI รัน migration
-`20260823_0003` และ PostgreSQL integration/concurrency tests ผ่านก่อน
+และ BACKTEST ที่ submission boundary ใน Phase 5
 
 ## Phase 6 — Paper Trading
 
-- [ ] Paper execution adapter
-- [ ] Order lifecycle
-- [ ] Database logging
-- [ ] FastAPI control plane
-- [ ] Telegram alerts
-- [ ] Monitoring dashboard
+- [x] Paper execution adapter
+- [x] Order lifecycle
+- [x] Database logging
+- [x] FastAPI control plane
+- [x] Telegram alerts
+- [x] Monitoring dashboard
+
+**สถานะ:** Phase 6 engineering implementation พร้อมเปิด PR โดย control plane และ worker
+รองรับเฉพาะ PAPER, ทุก submission ผ่าน authoritative Risk Engine, durable fencing,
+immutable instrument specification, order/fill/accounting audit และ authenticated monitoring.
+LIVE ยังถูก hard-reject ทุก boundary
+
+- [ ] PostgreSQL CI และ host-level restart/idempotency E2E ผ่านบน PR
+- [ ] Owner-approved empirical PAPER soak ผ่านตาม `16_PAPER_SOAK_VALIDATION.md`
+  พร้อม cadence-complete observations, reconciliation, incident review, immutable report
+  checksum และ owner/lead sign-off
 
 **Exit criteria:** Paper Trade ต่อเนื่องโดยไม่มี critical incident และผล audit ครบ
+
+Phase 6 จะถือว่า exit complete เมื่อ engineering checklist/CI และ empirical soak gate
+ผ่านทั้งคู่เท่านั้น Unit/integration tests และ soak harness ไม่ใช่หลักฐานแทนการรันจริง
+และห้ามเริ่ม Phase 7 หรือเปิด LIVE จากผล engineering เพียงอย่างเดียว
 
 ## Phase 7 — Controlled Live Pilot
 
@@ -118,9 +131,9 @@ Kill Switch และ authoritative approval evidence ก่อนเรีย�
 
 ## เอกสารที่จะจัดทำต่อ
 
-Phase 0–5 engineering implementation เสร็จตาม roadmap แล้ว โดย Phase 5 ต้องผ่าน PostgreSQL CI
-ก่อน merge งานวิจัย Phase 4 ยังต้องรัน approved historical market dataset และ cost stress และห้าม
-เริ่ม Paper/Live จาก golden fixture
+Phase 0–5 engineering implementation เสร็จและ merge แล้ว ส่วน Phase 6 engineering
+implementation รอ PR/CI และ empirical PAPER soak งานวิจัย Phase 4 ยังต้องรัน approved
+historical market dataset และ cost stress และห้ามเริ่ม Paper/Live จาก golden fixture
 
 
 ## Documentation Progress

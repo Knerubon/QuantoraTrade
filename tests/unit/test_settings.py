@@ -16,12 +16,13 @@ def test_app_settings_by_default_disables_live_trading() -> None:
     assert settings.live_trading_enabled is False
 
 
-def test_app_settings_when_live_is_not_enabled_rejects_live_mode() -> None:
-    with pytest.raises(ValidationError, match="live mode requires"):
+@pytest.mark.parametrize("enabled", [False, True])
+def test_app_settings_hard_rejects_live_mode_in_current_phase(enabled: bool) -> None:
+    with pytest.raises(ValidationError, match="live mode is unavailable"):
         AppSettings(
             _env_file=None,
             trading_mode=TradingMode.LIVE,
-            live_trading_enabled=False,
+            live_trading_enabled=enabled,
         )
 
 
