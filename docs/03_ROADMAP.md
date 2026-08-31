@@ -108,7 +108,7 @@ Kill Switch และ authoritative approval evidence ก่อนเรีย�
 immutable instrument specification, order/fill/accounting audit และ authenticated monitoring.
 LIVE ยังถูก hard-reject ทุก boundary
 
-- [ ] PostgreSQL CI และ host-level restart/idempotency E2E ผ่านบน PR
+- [x] PostgreSQL CI และ host-level restart/idempotency E2E ผ่านบน PR #12
 - [ ] Owner-approved empirical PAPER soak ผ่านตาม `16_PAPER_SOAK_VALIDATION.md`
   พร้อม cadence-complete observations, reconciliation, incident review, immutable report
   checksum และ owner/lead sign-off
@@ -131,8 +131,8 @@ Phase 6 จะถือว่า exit complete เมื่อ engineering check
 
 ## เอกสารที่จะจัดทำต่อ
 
-Phase 0–5 engineering implementation เสร็จและ merge แล้ว ส่วน Phase 6 engineering
-implementation รอ PR/CI และ empirical PAPER soak งานวิจัย Phase 4 ยังต้องรัน approved
+Phase 0–6 engineering implementation เสร็จและ merge แล้ว โดย Windows PAPER soak runner
+merge ผ่าน PR #13 ส่วน empirical PAPER soak ยังรอการรันจริง งานวิจัย Phase 4 ยังต้องรัน approved
 historical market dataset และ cost stress และห้ามเริ่ม Paper/Live จาก golden fixture
 
 
