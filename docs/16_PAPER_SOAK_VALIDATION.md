@@ -51,6 +51,28 @@ $env:QUANTORA_API_TOKEN = Read-Host "PAPER API token"
 $commit = git rev-parse HEAD
 ```
 
+### Windows runtime smoke environment
+
+ชุด runtime ใน `docker-compose.windows.yml` และ `scripts/windows-runtime.ps1` ใช้ตรวจ
+PostgreSQL → migration → authenticated API → durable Start/Stop queue → worker lifecycle
+บน Windows เท่านั้น ตัว worker สังเกต candle ที่ persist แล้วแต่ไม่มี signal/order source และติด
+reason code `SMOKE_ONLY_NO_ORDER_EXECUTION` จึง **ห้ามใช้ output เป็น empirical soak evidence**.
+
+```powershell
+$env:QUANTORA_POSTGRES_PASSWORD = Read-Host "PostgreSQL password"
+$env:QUANTORA_DATABASE_URL = "postgresql+psycopg://quantora:$env:QUANTORA_POSTGRES_PASSWORD@localhost:5432/quantora"
+$env:QUANTORA_API_TOKEN = Read-Host "Local API token (24+ characters)"
+$env:QUANTORA_TRADING_MODE = "paper"
+$env:QUANTORA_SMOKE_ONLY = "true"
+
+.\scripts\windows-runtime.ps1 Start
+.\scripts\windows-runtime.ps1 Status
+.\scripts\windows-runtime.ps1 Stop
+```
+
+`Stop` เก็บ PostgreSQL volume ไว้และไม่ลบหลักฐาน หากต้องการเปลี่ยนจาก smoke ไป empirical soak
+ต้องมี MT5 current-data adapter, approved-intent source และ production PAPER composition แยกต่างหาก.
+
 ตัวอย่าง smoke run 2 นาที (เป็นการตรวจ runner เท่านั้น ไม่ใช่หลักฐานปิด Phase 6):
 
 ```powershell

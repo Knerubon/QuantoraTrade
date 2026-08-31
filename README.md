@@ -2,8 +2,8 @@
 
 แพลตฟอร์มช่วยวิเคราะห์และพัฒนาระบบเทรดเชิงปริมาณ รองรับสินทรัพย์หลายประเภท โดยเริ่มทดสอบกับ **XAUUSD และตลาด Forex** และออกแบบให้ขยายตลาดได้โดยไม่ผูก logic กับสัญลักษณ์ใดสัญลักษณ์หนึ่ง
 
-> สถานะ: Phase 1–5 merge เข้า `main` แล้ว ส่วน Phase 6 engineering implementation
-> พร้อมเปิด PR และรอ PostgreSQL CI; empirical PAPER soak ยังไม่เริ่ม และ LIVE ยังถูกปิด
+> สถานะ: Phase 1–6 engineering implementation และ Windows PAPER soak runner merge เข้า
+> `main` แล้ว; empirical PAPER soak ยังไม่เริ่ม และ LIVE ยังถูกปิด
 
 ## เป้าหมาย
 
@@ -153,7 +153,7 @@ Kill Switch อีกครั้งก่อน BrokerPort โดย Phase 5 �
 14. [Research Evidence Base](docs/14_RESEARCH_EVIDENCE_BASE.md)
 15. [AI Research Framework](docs/15_AI_RESEARCH_FRAMEWORK.md)
 
-Phase 0–5 engineering implementation ครบและ merge แล้ว ส่วน Phase 4 empirical gate ยังรอ
+Phase 0–6 engineering implementation ครบและ merge แล้ว ส่วน Phase 4 empirical gate ยังรอ
 approved historical XAUUSD/Forex evaluation และยังไม่อนุญาต Live Trading
 
 ## สถานะสำคัญ
