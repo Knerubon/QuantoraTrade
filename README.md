@@ -158,4 +158,23 @@ approved historical XAUUSD/Forex evaluation และยังไม่อนุ
 
 ## สถานะสำคัญ
 
+### Command Center v0.1
+
+แดชบอร์ด Next.js อยู่ใน `dashboard/` มีหน้า Overview, Live Market, AI Agents,
+Pixel Office, Orders, Positions, Performance, Logs และ Settings ข้อมูลรุ่น v0.1 เป็น mock
+เพื่อยืนยัน UX ก่อนเชื่อม Backend event stream และ MT5 โดยแสดง `PAPER` และสถานะ LIVE locked
+อย่างชัดเจน
+
+```powershell
+cd dashboard
+npm install
+npm run dev
+```
+
+เปิด `http://127.0.0.1:3000` หรือ build ผ่าน Docker:
+
+```powershell
+docker compose -f docker-compose.windows.yml --profile dashboard up -d --build dashboard
+```
+
 โครงการนี้อยู่ในขั้นออกแบบและวิจัย ห้ามเปิด Live Trade จนกว่าจะผ่านเกณฑ์ Backtest, Paper Trade และการอนุมัติจากเจ้าของโครงการ
