@@ -9,6 +9,26 @@ permissions:
   contents: read
 
 jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install dashboard
+        run: npm ci
+      - name: Test dashboard
+        run: npm test
+      - name: Build dashboard
+        run: npm run build
+
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
